@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Twitch Lurker Pro</title>
+  <link rel="stylesheet" href="popup.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="logo-gem">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z"/>
+          </svg>
+        </div>
+        <div>
+          <h1 class="brand-title">Lurker Pro</h1>
+          <p class="brand-subtitle">Channel Points & Keep-Alive</p>
+        </div>
+      </div>
+      <div class="live-status-pill" id="liveStatus">
+        <span class="status-dot"></span>
+        <span class="status-text" id="statusText">Pronto</span>
+      </div>
+    </header>
+
+    <!-- Banner Aggiornamento Disponibile -->
+    <div class="update-banner" id="updateBanner" style="display: none;">
+      <div class="update-banner-top">
+        <span class="update-title">🚀 Nuova versione <strong id="updateVersionText">v1.0.6</strong> disponibile!</span>
+        <a href="#" id="updateDownloadBtn" target="_blank" class="update-btn">Aggiorna ora</a>
+      </div>
+      <div class="update-notes" id="updateNotesText">È disponibile un nuovo aggiornamento di Twitch Lurker Pro.</div>
+    </div>
+
+    <!-- Statistiche Principali -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon chest-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
+            <path d="m3.3 7 8.7 5 8.7-5"/>
+            <path d="M12 22V12"/>
+          </svg>
+        </div>
+        <div class="stat-info">
+          <span class="stat-value" id="totalClaims">0</span>
+          <span class="stat-label">Bauli Riscattati</span>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon points-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="9"/>
+            <path d="M12 7v10"/>
+            <path d="M15 9.5a2.5 2.5 0 0 0-5 0c0 3 5 2 5 5a2.5 2.5 0 0 1-5 0"/>
+          </svg>
+        </div>
+        <div class="stat-info">
+          <span class="stat-value highlight" id="totalPoints">+0</span>
+          <span class="stat-label">Punti Guadagnati</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sezione Interruttori Opzioni -->
+    <div class="settings-card">
+      <div class="setting-item">
+        <div class="setting-text">
+          <span class="setting-title">Auto-Riscatto Punti</span>
+          <span class="setting-desc">Clicca i bauli bonus appena compaiono</span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="toggleEnabled" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="setting-item">
+        <div class="setting-text">
+          <span class="setting-title">Ritardo Umano Anti-Bot</span>
+          <span class="setting-desc">Attende 1.2s - 3.8s prima di cliccare</span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="toggleHumanDelay" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="setting-item">
+        <div class="setting-text">
+          <span class="setting-title">Keep-Alive Scheda</span>
+          <span class="setting-desc">Simula micro-attività per non far ibernare il lurk</span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="toggleKeepAlive" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="setting-item">
+        <div class="setting-text">
+          <span class="setting-title">Mostra Badge in Chat</span>
+          <span class="setting-desc">Mostra il contatore punti sopra la chat di Twitch</span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="toggleShowBadge" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="setting-item">
+        <div class="setting-text">
+          <span class="setting-title">Avviso Sonoro Leggero</span>
+          <span class="setting-desc">Piccolo segnale audio al riscatto</span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="toggleSound">
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Storico Riscatti Recenti -->
+    <div class="history-section">
+      <div class="history-header">
+        <span class="history-title">Attività Recente</span>
+        <button id="resetStatsBtn" class="btn-text">Azzera</button>
+      </div>
+      <div class="history-list" id="historyList">
+        <div class="history-empty">
+          <p>Nessun riscatto recente.</p>
+          <span>Apri uno stream su Twitch per iniziare a raccogliere punti!</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span class="version-tag" id="currentVersionTag">v1.0.5</span>
+        <button id="checkUpdateBtn" class="btn-check-update" title="Controlla se ci sono nuove versioni">🔄 Controlla aggiornamenti</button>
+      </div>
+      <span class="lurk-tip">💡 <i>Muta la scheda, non il player!</i></span>
+    </footer>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

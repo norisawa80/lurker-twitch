@@ -1,0 +1,9 @@
+{
+  "version": "1.0.5",
+  "releaseDate": "2026-10-31",
+  "downloadUrl": "https://github.com/norisawa80/lurker-twitch/archive/refs/heads/main.zip",
+  "userscriptUrl": "https://raw.githubusercontent.com/norisawa80/lurker-twitch/main/twitch-lurker-points.user.js",
+  "repoUrl": "https://github.com/norisawa80/lurker-twitch",
+  "notes": "Aggiunto controllo automatico aggiornamenti e opzione mostra/nascondi badge."
+}
+

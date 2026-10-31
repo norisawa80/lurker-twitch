@@ -1,0 +1,1584 @@
+﻿<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Twitch Lurker Pro - Installazione Guidata Semplificata</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b0b0e;
+      --card-bg: #141418;
+      --card-inner: #1c1c22;
+      --card-border: rgba(255, 255, 255, 0.08);
+      --purple: #9146ff;
+      --purple-hover: #7d33eb;
+      --purple-glow: rgba(145, 70, 255, 0.4);
+      --purple-subtle: rgba(145, 70, 255, 0.12);
+      --green: #00f593;
+      --green-glow: rgba(0, 245, 147, 0.35);
+      --green-dark: #042718;
+      --yellow: #ffd13b;
+      --text: #efeff1;
+      --text-muted: #adadb8;
+      --text-dim: #7f7f8a;
+      --code-bg: #070709;
+      --radius: 16px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      line-height: 1.55;
+      padding: 30px 16px 80px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .container {
+      max-width: 900px;
+      width: 100%;
+    }
+
+    /* Header */
+    header {
+      text-align: center;
+      margin-bottom: 32px;
+      position: relative;
+    }
+
+    .top-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--purple-subtle);
+      border: 1px solid rgba(145, 70, 255, 0.45);
+      color: #c79bff;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 6px 14px;
+      border-radius: 999px;
+      margin-bottom: 14px;
+      box-shadow: 0 0 20px var(--purple-glow);
+    }
+
+    .pulse-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--green);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--green);
+      animation: pulse 1.8s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+
+    h1 {
+      font-size: 36px;
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      margin-bottom: 10px;
+      background: linear-gradient(135deg, #ffffff 40%, #c49eff 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 16px;
+      max-width: 620px;
+      margin: 0 auto;
+    }
+
+    /* Choice Selector Cards */
+    .selector-label {
+      font-size: 14px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-dim);
+      margin-bottom: 12px;
+      text-align: center;
+    }
+
+    .browser-tabs {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 10px;
+      margin-bottom: 28px;
+    }
+
+    .browser-btn {
+      background: var(--card-bg);
+      border: 2px solid var(--card-border);
+      border-radius: 14px;
+      padding: 16px 14px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      font-family: inherit;
+      color: var(--text-muted);
+      transition: all 0.22s ease;
+      text-align: center;
+      position: relative;
+    }
+
+    .browser-btn:hover {
+      border-color: rgba(145, 70, 255, 0.4);
+      background: #191920;
+      color: #ffffff;
+      transform: translateY(-2px);
+    }
+
+    .browser-btn.active {
+      background: rgba(145, 70, 255, 0.12);
+      border-color: var(--purple);
+      color: #ffffff;
+      box-shadow: 0 4px 20px var(--purple-glow);
+    }
+
+    .browser-btn .icon {
+      font-size: 26px;
+      line-height: 1;
+    }
+
+    .browser-btn .name {
+      font-weight: 700;
+      font-size: 15px;
+      color: #ffffff;
+    }
+
+    .browser-btn .badge-pill {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-muted);
+    }
+
+    .browser-btn.active .badge-pill {
+      background: var(--purple);
+      color: #fff;
+    }
+
+    .badge-pop {
+      position: absolute;
+      top: -8px;
+      right: 10px;
+      background: var(--green);
+      color: var(--green-dark);
+      font-size: 10px;
+      font-weight: 800;
+      padding: 2px 7px;
+      border-radius: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    /* Progress Checklist Header */
+    .checklist-bar {
+      background: var(--card-inner);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 12px 18px;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .progress-title {
+      font-size: 13.5px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #fff;
+    }
+
+    .progress-dots {
+      display: flex;
+      gap: 6px;
+    }
+
+    .prog-step {
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-dim);
+      border: 1px solid transparent;
+      transition: all 0.25s ease;
+    }
+
+    .prog-step.active {
+      background: var(--purple-subtle);
+      border-color: rgba(145, 70, 255, 0.5);
+      color: #d1b3ff;
+    }
+
+    .prog-step.done {
+      background: rgba(0, 245, 147, 0.12);
+      border-color: rgba(0, 245, 147, 0.4);
+      color: var(--green);
+    }
+
+    /* Main Tab Content Panes */
+    .tab-pane {
+      display: none;
+    }
+
+    .tab-pane.active {
+      display: block;
+      animation: fadeIn 0.22s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Step Cards */
+    .step-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      padding: 24px 26px;
+      margin-bottom: 20px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+      position: relative;
+      transition: border-color 0.2s ease;
+    }
+
+    .step-card:hover {
+      border-color: rgba(255, 255, 255, 0.14);
+    }
+
+    .step-card.completed {
+      border-color: rgba(0, 245, 147, 0.4);
+      background: linear-gradient(180deg, #151816 0%, #141418 100%);
+    }
+
+    .step-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    .step-badge {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: var(--purple-subtle);
+      border: 1.5px solid var(--purple);
+      color: #ffffff;
+      font-weight: 800;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 0 12px var(--purple-glow);
+    }
+
+    .step-card.completed .step-badge {
+      background: rgba(0, 245, 147, 0.15);
+      border-color: var(--green);
+      color: var(--green);
+      box-shadow: 0 0 12px var(--green-glow);
+    }
+
+    .step-title-wrap {
+      flex: 1;
+    }
+
+    .step-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .step-subtitle {
+      font-size: 13.5px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    /* Giant 1-Click Copy Box */
+    .giant-action-box {
+      background: var(--code-bg);
+      border: 1.5px dashed rgba(145, 70, 255, 0.45);
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-top: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .path-display {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(255, 255, 255, 0.03);
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .path-display code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13.5px;
+      color: #caa8ff;
+      flex: 1;
+      overflow-x: auto;
+      white-space: nowrap;
+      word-break: break-all;
+    }
+
+    .big-copy-btn {
+      background: var(--purple);
+      color: #ffffff;
+      border: none;
+      padding: 14px 22px;
+      border-radius: 10px;
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 18px var(--purple-glow);
+      width: 100%;
+    }
+
+    .big-copy-btn:hover {
+      background: var(--purple-hover);
+      transform: translateY(-1px);
+    }
+
+    .big-copy-btn.copied {
+      background: var(--green);
+      color: var(--green-dark);
+      box-shadow: 0 4px 18px var(--green-glow);
+    }
+
+    /* Visual Browser Mockup (Simulatore per non sbagliare) */
+    .browser-mockup {
+      background: #101014;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-top: 16px;
+    }
+
+    .mockup-topbar {
+      background: #1c1c22;
+      padding: 8px 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .mockup-dots {
+      display: flex;
+      gap: 6px;
+    }
+
+    .mockup-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    .mockup-url {
+      background: #0d0d10;
+      border-radius: 6px;
+      padding: 4px 12px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--text-muted);
+      flex: 1;
+      max-width: 320px;
+    }
+
+    .mockup-body {
+      padding: 16px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .mockup-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .mock-target-box {
+      border: 2px solid var(--yellow);
+      background: rgba(255, 209, 59, 0.08);
+      border-radius: 8px;
+      padding: 8px 12px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .mock-target-box.purple {
+      border-color: var(--purple);
+      background: var(--purple-subtle);
+      color: #ffffff;
+    }
+
+    .mock-toggle {
+      width: 42px;
+      height: 22px;
+      background: var(--purple);
+      border-radius: 999px;
+      position: relative;
+      display: inline-block;
+      box-shadow: 0 0 10px var(--purple-glow);
+    }
+
+    .mock-toggle::after {
+      content: '';
+      position: absolute;
+      right: 3px;
+      top: 3px;
+      width: 16px;
+      height: 16px;
+      background: #fff;
+      border-radius: 50%;
+    }
+
+    /* Buttons & Links */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 18px;
+      border-radius: 10px;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: all 0.2s ease;
+    }
+
+    .btn-secondary {
+      background: var(--card-inner);
+      color: var(--text);
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .btn-secondary:hover {
+      background: #272730;
+      border-color: rgba(255, 255, 255, 0.2);
+      color: #fff;
+    }
+
+    .btn-green {
+      background: var(--green);
+      color: var(--green-dark);
+      font-weight: 700;
+    }
+
+    .btn-green:hover {
+      background: #00df84;
+    }
+
+    .btn-sm {
+      padding: 6px 12px;
+      font-size: 12px;
+    }
+
+    /* Callout & Tips */
+    .callout {
+      display: flex;
+      gap: 12px;
+      background: rgba(145, 70, 255, 0.08);
+      border: 1px solid rgba(145, 70, 255, 0.25);
+      border-radius: 12px;
+      padding: 14px 18px;
+      margin-top: 14px;
+      align-items: flex-start;
+      font-size: 13.5px;
+      color: #d1d1dc;
+    }
+
+    .callout.green {
+      background: rgba(0, 245, 147, 0.06);
+      border-color: rgba(0, 245, 147, 0.25);
+      color: #c9f8e4;
+    }
+
+    .callout.yellow {
+      background: rgba(255, 209, 59, 0.06);
+      border-color: rgba(255, 209, 59, 0.25);
+      color: #ffe699;
+    }
+
+    .callout strong {
+      color: #ffffff;
+    }
+
+    /* Twitch Preview Demonstration */
+    .twitch-preview {
+      background: #0e0e10;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 14px;
+      padding: 20px;
+      margin-top: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .preview-chatbox {
+      background: #18181b;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .simulated-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(14, 14, 16, 0.95);
+      border: 1px solid rgba(145, 70, 255, 0.8);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6), 0 0 12px rgba(145, 70, 255, 0.4);
+      color: #efeff1;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 6px 14px;
+      border-radius: 999px;
+    }
+
+    .simulated-badge .num {
+      color: var(--green);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* FAQ Collapsibles */
+    .faq-item {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      margin-bottom: 10px;
+      overflow: hidden;
+    }
+
+    .faq-question {
+      padding: 16px 20px;
+      font-weight: 600;
+      font-size: 14.5px;
+      color: #ffffff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      user-select: none;
+    }
+
+    .faq-question:hover {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .faq-arrow {
+      transition: transform 0.2s ease;
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+
+    .faq-item.open .faq-arrow {
+      transform: rotate(180deg);
+      color: var(--purple);
+    }
+
+    .faq-answer {
+      padding: 0 20px 16px;
+      color: var(--text-muted);
+      font-size: 13.5px;
+      display: none;
+      line-height: 1.6;
+    }
+
+    .faq-item.open .faq-answer {
+      display: block;
+    }
+
+    /* Toast Notification */
+    #toast {
+      position: fixed;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: #141418;
+      border: 1px solid var(--green);
+      color: #ffffff;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 12px 24px;
+      border-radius: 999px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), 0 0 20px var(--green-glow);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      z-index: 999999;
+      opacity: 0;
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      pointer-events: none;
+    }
+
+    #toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+
+    /* Footer */
+    footer {
+      text-align: center;
+      margin-top: 40px;
+      color: var(--text-dim);
+      font-size: 13px;
+    }
+
+    @media (max-width: 600px) {
+      h1 { font-size: 26px; }
+      .browser-tabs { grid-template-columns: 1fr; }
+      .checklist-bar { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Toast for feedback -->
+  <div id="toast">
+    <span>✓</span>
+    <span id="toastText">Percorso copiato con successo!</span>
+  </div>
+
+  <div class="container">
+
+    <!-- Header -->
+    <header>
+      <div class="top-badge">
+        <span class="pulse-dot"></span>
+        Twitch Lurker Pro • Guida Definitiva
+      </div>
+      <h1>Installazione a Prova di Errore 🚀</h1>
+      <p class="subtitle">
+        Nessun comando da terminale, nessun file complicato. Segui i 3 semplici passaggi qui sotto per attivare il riscatto automatico dei punti su Twitch!
+      </p>
+    </header>
+
+    <!-- Browser Chooser Tabs -->
+    <div class="selector-label">👇 Seleziona il tuo browser preferito:</div>
+    <div class="browser-tabs">
+      <button class="browser-btn active" onclick="switchBrowser('chrome')">
+        <span class="badge-pop">Più Rapido</span>
+        <span class="icon">🔵</span>
+        <span class="name">Google Chrome</span>
+        <span class="badge-pill">Brave / Opera</span>
+      </button>
+
+      <button class="browser-btn" onclick="switchBrowser('edge')">
+        <span class="icon">🟦</span>
+        <span class="name">Microsoft Edge</span>
+        <span class="badge-pill">Estensione Diretta</span>
+      </button>
+
+      <button class="browser-btn" onclick="switchBrowser('firefox')">
+        <span class="icon">🦊</span>
+        <span class="name">Mozilla Firefox</span>
+        <span class="badge-pill">Guida Specifica</span>
+      </button>
+
+      <button class="browser-btn" onclick="switchBrowser('tampermonkey')">
+        <span class="icon">📜</span>
+        <span class="name">Tampermonkey</span>
+        <span class="badge-pill">Solo Userscript</span>
+      </button>
+    </div>
+
+    <!-- Progress tracker -->
+    <div class="checklist-bar">
+      <div class="progress-title">
+        <span>📍 Avanzamento:</span>
+      </div>
+      <div class="progress-dots">
+        <span class="prog-step active" id="prog1">1. Copia Cartella</span>
+        <span class="prog-step" id="prog2">2. Apri Estensioni</span>
+        <span class="prog-step" id="prog3">3. Carica ed Attiva</span>
+      </div>
+    </div>
+
+
+    <!-- ========================================== -->
+    <!-- TAB 1 & 2: CHROME / EDGE / BRAVE / OPERA -->
+    <!-- ========================================== -->
+    <div id="pane-chrome" class="tab-pane active">
+
+      <!-- PASSO 1 -->
+      <div class="step-card" id="card-step1">
+        <div class="step-header">
+          <div class="step-badge" id="badge-step1">1</div>
+          <div class="step-title-wrap">
+            <div class="step-title">
+              Copia il percorso di questa cartella
+              <span style="font-size: 13px; color: var(--green); font-weight: normal;" id="step1-status"></span>
+            </div>
+            <div class="step-subtitle">Basta un solo clic sul pulsante viola qui sotto!</div>
+          </div>
+        </div>
+
+        <div class="giant-action-box">
+          <div id="detectedStatus" style="font-size: 13px; font-weight: 700; color: var(--green); display: flex; align-items: center; gap: 6px;">
+            <span class="pulse-dot"></span> Rilevato automaticamente in tempo reale su questo computer:
+          </div>
+          <div class="path-display">
+            <span style="color: var(--text-dim); font-size: 13px;">📁</span>
+            <code id="folderPathText">Rilevamento percorso cartella...</code>
+          </div>
+
+          <button class="big-copy-btn" id="btnCopyPath" onclick="copyFolder()">
+            <span>📋</span> CLICCA QUI PER COPIARE IL PERCORSO
+          </button>
+        </div>
+
+        <div class="callout green" style="margin-top: 14px;">
+          <span style="font-size: 20px;">🌍</span>
+          <div>
+            <strong>100% Universale e Portabile:</strong><br>
+            Questo percorso si adatta <strong>automaticamente a qualsiasi computer</strong>! Se passi la cartella o il file .zip a un amico (o la sposti in un'altra cartella, chiavetta USB o Mac), aprendo questa pagina leggerà all'istante il <em>suo</em> percorso personale (es. <code>C:\Users\NomeAmico\Downloads\lurker-twitch</code>).
+          </div>
+        </div>
+
+        <div style="margin-top: 12px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 14px;">
+          <div style="font-weight: 700; color: #fff; font-size: 13.5px; margin-bottom: 6px;">
+            💡 Due modi semplici per selezionare la cartella:
+          </div>
+          <div style="font-size: 13px; color: var(--text-muted); line-height: 1.6;">
+            • <strong>Modo A (Il più facile per chiunque):</strong> Clicca su <em>"Carica estensione non pacchettizzata"</em> nel browser, naviga semplicemente nella cartella dove hai salvato i file (es. <em>Download</em> o <em>Desktop</em>) e seleziona la cartella <strong>"lurker-twitch"</strong>.<br>
+            • <strong>Modo B (Scorciatoia 1 clic):</strong> Clicca sul pulsante viola qui sopra per copiare il percorso rilevato, e incollalo con <code>Ctrl + V</code> nella finestra di selezione.
+          </div>
+        </div>
+      </div>
+
+      <!-- PASSO 2 -->
+      <div class="step-card" id="card-step2">
+        <div class="step-header">
+          <div class="step-badge" id="badge-step2">2</div>
+          <div class="step-title-wrap">
+            <div class="step-title">
+              Apri la schermata delle Estensioni nel browser
+            </div>
+            <div class="step-subtitle">I browser per sicurezza non aprono i link interni con un clic, ma è semplicissimo:</div>
+          </div>
+        </div>
+
+        <!-- Opzioni per aprire la pagina estensioni -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin-top: 14px;">
+
+          <!-- Opzione A: Copia Indirizzo -->
+          <div style="background: var(--card-inner); border: 1px solid var(--card-border); padding: 14px; border-radius: 12px; display: flex; flex-direction: column; justify-content: space-between; gap: 10px;">
+            <div>
+              <div style="font-size: 13px; font-weight: 700; color: #fff; margin-bottom: 4px;">Metodo A: Copia l'indirizzo</div>
+              <div style="font-size: 13px; color: var(--text-muted);">
+                Copia questo indirizzo, apri una nuova scheda (<kbd style="background: #272730; padding: 2px 6px; border-radius: 4px; font-size: 11px;">Ctrl + T</kbd>) e incollalo:
+              </div>
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <code style="background: #000; padding: 6px 10px; border-radius: 6px; font-family: monospace; font-size: 12px; color: #caa8ff; flex: 1;" id="browserExtUrl">chrome://extensions</code>
+              <button class="btn btn-secondary btn-sm" onclick="copyExtUrl()">Copia 📋</button>
+            </div>
+          </div>
+
+          <!-- Opzione B: Dal Menu con il Mouse -->
+          <div style="background: var(--card-inner); border: 1px solid var(--card-border); padding: 14px; border-radius: 12px;">
+            <div style="font-size: 13px; font-weight: 700; color: #fff; margin-bottom: 4px;">Metodo B: Con il mouse in 2 clic</div>
+            <ol style="margin-left: 18px; font-size: 13px; color: var(--text-muted); display: flex; flex-direction: column; gap: 4px;">
+              <li>Clicca sui <strong>3 puntini ⋮</strong> in alto a destra nel browser</li>
+              <li>Passa su <strong>Estensioni</strong> &rarr; Clicca <strong>Gestisci estensioni</strong></li>
+            </ol>
+          </div>
+        </div>
+      </div>
+
+      <!-- PASSO 3 -->
+      <div class="step-card" id="card-step3">
+        <div class="step-header">
+          <div class="step-badge" id="badge-step3">3</div>
+          <div class="step-title-wrap">
+            <div class="step-title">
+              Attiva la Modalità Sviluppatore e Carica la Cartella
+            </div>
+            <div class="step-subtitle">Ecco esattamente cosa cercare sullo schermo:</div>
+          </div>
+        </div>
+
+        <!-- Browser Mockup -->
+        <div class="browser-mockup">
+          <div class="mockup-topbar">
+            <div class="mockup-dots">
+              <span class="mockup-dot"></span>
+              <span class="mockup-dot"></span>
+              <span class="mockup-dot"></span>
+            </div>
+            <div class="mockup-url">chrome://extensions</div>
+          </div>
+
+          <div class="mockup-body">
+            <!-- Riquadro 1: Levetta Sviluppatore -->
+            <div class="mockup-row" style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px;">
+              <div>
+                <strong style="color: #fff; font-size: 13.5px;">1. In alto a destra:</strong>
+                <div style="color: var(--text-muted); font-size: 12.5px;">Attiva l'interruttore "Modalità sviluppatore"</div>
+              </div>
+              <div class="mock-target-box">
+                <span>Modalità sviluppatore</span>
+                <span class="mock-toggle"></span>
+                <span style="color: var(--yellow); font-size: 11px;">👈 ATTIVALO</span>
+              </div>
+            </div>
+
+            <!-- Riquadro 2: Pulsante Carica Non Pacchettizzata -->
+            <div class="mockup-row" style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px;">
+              <div>
+                <strong style="color: #fff; font-size: 13.5px;">2. In alto a sinistra:</strong>
+                <div style="color: var(--text-muted); font-size: 12.5px;">Comparirà questo nuovo pulsante. Cliccalo:</div>
+              </div>
+              <div class="mock-target-box purple">
+                <span>📁 Carica estensione non pacchettizzata</span>
+                <span style="color: #00f593; font-size: 11px;">👈 CLICCA QUI</span>
+              </div>
+            </div>
+
+            <!-- Riquadro 3: Finestra di selezione -->
+            <div style="border-left: 3px solid var(--green); padding-left: 12px; font-size: 13px; color: #d1d1dc;">
+              <strong>3. Nella finestrella che si apre per scegliere la cartella:</strong><br>
+              Premi <kbd style="background: #272730; padding: 2px 6px; border-radius: 4px; font-size: 11px; color: #fff;">Ctrl + V</kbd> sulla barra in alto (o sul campo "Cartella:"), premi <strong>Invio</strong> e poi clicca sul tasto <strong>"Seleziona cartella"</strong>!
+            </div>
+          </div>
+        </div>
+
+        <div class="callout green" style="margin-top: 18px;">
+          <span>🎉</span>
+          <div>
+            <strong>FATTO! L'estensione è attiva al 100%!</strong><br>
+            Per comodità, clicca sull'icona del <strong>puzzle 🧩</strong> in alto a destra nel browser e clicca sulla puntina 📌 accanto a <strong>Twitch Lurker Pro</strong> per fissarla sulla barra.
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+
+    <!-- ========================================== -->
+    <!-- TAB 3: MOZILLA FIREFOX -->
+    <!-- ========================================== -->
+    <div id="pane-firefox" class="tab-pane">
+      <div class="step-card">
+        <div class="step-header">
+          <div class="step-badge" style="border-color: #ff7139; background: rgba(255, 113, 57, 0.15); color: #ff9d75;">🦊</div>
+          <div class="step-title-wrap">
+            <div class="step-title">Come installare su Mozilla Firefox</div>
+            <div class="step-subtitle">Firefox gestisce le estensioni locali in modo diverso da Chrome. Scegli l'opzione che preferisci:</div>
+          </div>
+        </div>
+
+        <!-- Opzione 1: Tampermonkey (Consigliata) -->
+        <div style="background: var(--card-inner); border: 2px solid var(--purple); border-radius: 12px; padding: 18px; margin-top: 14px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px;">
+            <div style="font-weight: 700; color: #ffffff; font-size: 16px;">
+              🌟 Opzione A: Con Tampermonkey (CONSIGLIATA - Definitiva)
+            </div>
+            <span style="background: var(--green); color: var(--green-dark); font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 6px;">Zero problemi</span>
+          </div>
+          <p style="font-size: 13.5px; color: var(--text-muted); margin-bottom: 14px;">
+            Su Firefox, le estensioni caricate da cartella locale si disattivano quando chiudi il browser. Usando <strong>Tampermonkey</strong> invece rimane <strong>attivo per sempre a ogni riavvio</strong>!
+          </p>
+
+          <ol style="margin-left: 20px; font-size: 13.5px; color: #fff; display: flex; flex-direction: column; gap: 8px;">
+            <li>
+              Installa l'estensione gratuita per Firefox:
+              <a href="https://addons.mozilla.org/it/firefox/addon/tampermonkey/" target="_blank" class="btn btn-secondary btn-sm" style="margin-left: 6px;">
+                🦊 Scarica Tampermonkey per Firefox &rarr;
+              </a>
+            </li>
+            <li>
+              Una volta installato, clicca qui per importare lo script con 1 clic:
+              <div style="margin-top: 8px; display: flex; gap: 10px; flex-wrap: wrap;">
+                <button class="btn btn-green btn-sm" onclick="copyScriptCode()">
+                  📋 Copia Codice Script negli Appunti
+                </button>
+                <a href="tampermonkey-backup.json" download="tampermonkey-backup.json" class="btn btn-secondary btn-sm">
+                  💾 Oppure Scarica tampermonkey-backup.json
+                </a>
+              </div>
+            </li>
+          </ol>
+        </div>
+
+        <!-- Opzione 2: Temporanea nativa -->
+        <div style="background: var(--card-inner); border: 1px solid var(--card-border); border-radius: 12px; padding: 18px; margin-top: 14px;">
+          <div style="font-weight: 700; color: #ffffff; font-size: 15px; margin-bottom: 8px;">
+            🧪 Opzione B: Estensione Nativa Temporanea
+          </div>
+          <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 10px;">
+            Se vuoi provare l'icona e il popup nativo senza estensioni terze:
+          </p>
+          <ol style="margin-left: 20px; font-size: 13px; color: var(--text-muted); display: flex; flex-direction: column; gap: 6px;">
+            <li>Apri una nuova scheda e digita: <code style="background: #000; padding: 2px 6px; border-radius: 4px; color: #caa8ff;">about:debugging#/runtime/this-firefox</code></li>
+            <li>Clicca sul pulsante <strong>"Carica componente aggiuntivo temporaneo..."</strong></li>
+            <li>Seleziona il file <code style="color: #fff;">manifest.json</code> dentro questa cartella. Fatto!</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ========================================== -->
+    <!-- TAB 4: TAMPERMONKEY / VIOLENTMONKEY -->
+    <!-- ========================================== -->
+    <div id="pane-tampermonkey" class="tab-pane">
+      <div class="step-card">
+        <div class="step-header">
+          <div class="step-badge" style="border-color: #00f593; background: rgba(0, 245, 147, 0.15); color: #00f593;">📜</div>
+          <div class="step-title-wrap">
+            <div class="step-title">Installazione con Tampermonkey / Violentmonkey</div>
+            <div class="step-subtitle">Per chi preferisce usare uno script manager leggero senza installare estensioni non pacchettizzate.</div>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin-top: 16px;">
+
+          <!-- Metodo Backup JSON -->
+          <div style="background: var(--card-inner); border: 1px solid var(--card-border); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+              <div style="font-weight: 700; color: #fff; font-size: 15px; margin-bottom: 6px;">
+                Metodo 1: Importa File di Backup (3 Clic)
+              </div>
+              <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px;">
+                Abbiamo già preparato il file pronto per l'importazione:
+              </p>
+              <ol style="margin-left: 18px; font-size: 12.5px; color: var(--text-muted); display: flex; flex-direction: column; gap: 4px;">
+                <li>Apri la Dashboard di Tampermonkey</li>
+                <li>Vai nella scheda <strong>Utilità</strong> (in alto)</li>
+                <li>In <strong>Importa da file</strong>, seleziona:</li>
+              </ol>
+            </div>
+            <a href="tampermonkey-backup.json" download="tampermonkey-backup.json" class="btn btn-secondary btn-sm" style="margin-top: 14px;">
+              💾 Scarica tampermonkey-backup.json
+            </a>
+          </div>
+
+          <!-- Metodo Copia Codice -->
+          <div style="background: var(--card-inner); border: 1px solid var(--card-border); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+              <div style="font-weight: 700; color: #fff; font-size: 15px; margin-bottom: 6px;">
+                Metodo 2: Copia e Incolla Codice
+              </div>
+              <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 12px;">
+                Copia il codice pulito con 1 clic negli appunti:
+              </p>
+              <ol style="margin-left: 18px; font-size: 12.5px; color: var(--text-muted); display: flex; flex-direction: column; gap: 4px;">
+                <li>In Tampermonkey clicca su <strong>"+" (Nuovo Script)</strong></li>
+                <li>Incolla con <kbd style="background: #272730; padding: 1px 5px; border-radius: 4px; font-size: 11px;">Ctrl + V</kbd></li>
+                <li>Premi <kbd style="background: #272730; padding: 1px 5px; border-radius: 4px; font-size: 11px;">Ctrl + S</kbd> per salvare. Fine!</li>
+              </ol>
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="copyScriptCode()" style="margin-top: 14px;">
+              📋 Copia Codice negli Appunti
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ========================================== -->
+    <!-- COME VERIFICARE CHE STA FUNZIONANDO -->
+    <!-- ========================================== -->
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-badge" style="border-color: #00f593; background: rgba(0, 245, 147, 0.15); color: #00f593;">✓</div>
+        <div class="step-title-wrap">
+          <div class="step-title">Come verificare che sta funzionando?</div>
+          <div class="step-subtitle">Basta aprire qualsiasi canale Twitch!</div>
+        </div>
+      </div>
+
+      <div class="twitch-preview">
+        <div style="font-size: 13px; color: var(--text-muted);">
+          Apri una qualsiasi live su <strong>twitch.tv</strong>. In basso a destra dello schermo vedrai apparire questo indicatore trasparente:
+        </div>
+
+        <div class="preview-chatbox">
+          <div style="font-size: 13px; color: var(--text-dim);">Chat Twitch...</div>
+          <div class="simulated-badge">
+            <span>💎 Lurker Pro:</span>
+            <span class="num" id="demoPoints">150</span>
+            <span style="color: var(--text-dim); font-size: 11px;">pts</span>
+          </div>
+        </div>
+
+        <div style="font-size: 13px; color: var(--text-muted); line-height: 1.5;">
+          🎁 <strong>Quando appare il baule verde dei punti bonus:</strong><br>
+          Lurker Pro attende tra 1.2 e 2.5 secondi (per simulare una reazione umana naturale e non venire intercettato da sistemi anti-bot), dopodiché riscatta i punti automaticamente e incrementa il contatore.
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ========================================== -->
+    <!-- REGOLE D'ORO PER IL LURKING -->
+    <!-- ========================================== -->
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-badge" style="border-color: var(--yellow); background: rgba(255, 209, 59, 0.15); color: var(--yellow);">💡</div>
+        <div class="step-title-wrap">
+          <div class="step-title">Le 3 Regole d'oro per far contare sempre il tuo Viewer</div>
+          <div class="step-subtitle">Segui queste semplici regole per supportare al 100% lo streamer:</div>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin-top: 14px;">
+        <div style="background: var(--card-inner); padding: 14px; border-radius: 10px; border: 1px solid var(--card-border);">
+          <div style="font-size: 18px; margin-bottom: 6px;">🔇 Volume al 5%</div>
+          <div style="font-size: 13px; color: var(--text-muted);">
+            <strong>Non mutare il player di Twitch</strong> (Twitch rischia di non contarti come spettatore). Lascialo al 5% e, se non vuoi sentire l'audio, fai clic destro sulla <em>scheda del browser</em> &rarr; <strong>Disattiva audio scheda</strong>.
+          </div>
+        </div>
+
+        <div style="background: var(--card-inner); padding: 14px; border-radius: 10px; border: 1px solid var(--card-border);">
+          <div style="font-size: 18px; margin-bottom: 6px;">📉 Qualità a 160p</div>
+          <div style="font-size: 13px; color: var(--text-muted);">
+            Clicca sull'ingranaggio del player e imposta la risoluzione più bassa (160p). Consuma zero banda e zero memoria sul PC, ma per Twitch sei uno spettatore attivo.
+          </div>
+        </div>
+
+        <div style="background: var(--card-inner); padding: 14px; border-radius: 10px; border: 1px solid var(--card-border);">
+          <div style="font-size: 18px; margin-bottom: 6px;">👥 Max 2 Stream</div>
+          <div style="font-size: 13px; color: var(--text-muted);">
+            Twitch conta come viewer valido al massimo <strong>2 canali in contemporanea</strong> per ogni indirizzo IP / account. Se ne apri 5, solo i primi 2 riceveranno il viewer e i punti.
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ========================================== -->
+    <!-- FAQ / DOMANDE FREQUENTI -->
+    <!-- ========================================== -->
+    <div style="margin-top: 24px;">
+      <div style="font-size: 15px; font-weight: 700; color: #ffffff; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+        <span>❓</span> Domande Frequenti & Risoluzione Problemi
+      </div>
+
+      <div class="faq-item" onclick="toggleFaq(this)">
+        <div class="faq-question">
+          <span>Posso chiudere questa pagina dopo l'installazione?</span>
+          <span class="faq-arrow">▼</span>
+        </div>
+        <div class="faq-answer">
+          <strong>Assolutamente sì!</strong> Una volta che hai caricato la cartella nelle estensioni (o importato lo script), il browser memorizza l'estensione per sempre. Puoi chiudere questa pagina e riavviare il PC senza problemi.
+        </div>
+      </div>
+
+      <div class="faq-item" onclick="toggleFaq(this)">
+        <div class="faq-question">
+          <span>Posso spostare o cancellare la cartella dei file?</span>
+          <span class="faq-arrow">▼</span>
+        </div>
+        <div class="faq-answer">
+          <strong>No, non cancellarla!</strong> Il browser legge l'estensione direttamente dalla cartella in cui l'hai salvata/estratta sul tuo computer. Se sposti o cancelli la cartella, il browser non troverà più i file e disattiverà l'estensione. Lasciala tranquilla dove si trova.
+        </div>
+      </div>
+
+      <div class="faq-item" onclick="toggleFaq(this)">
+        <div class="faq-question">
+          <span>Non vedo nessun file quando clicco su "Seleziona cartella", è normale?</span>
+          <span class="faq-arrow">▼</span>
+        </div>
+        <div class="faq-answer">
+          <strong>Sì, è normalissimo!</strong> La finestra di Windows in quella modalità ti chiede di selezionare la <em>cartella contenitore</em>, non i singoli file. Finché ti trovi dentro la cartella del progetto o l'hai incollata nella barra, basta cliccare il pulsante <strong>"Seleziona cartella"</strong> in basso a destra.
+        </div>
+      </div>
+
+      <div class="faq-item" onclick="toggleFaq(this)">
+        <div class="faq-question">
+          <span>Funziona anche se Twitch è minimizzato o in background?</span>
+          <span class="faq-arrow">▼</span>
+        </div>
+        <div class="faq-answer">
+          <strong>Sì!</strong> Lurker Pro include un sistema di <em>Keep-Alive</em> leggero che invia micro-segnali al browser ogni 2 minuti e mezzo, impedendo al browser di congelare la scheda e garantendo che i punti vengano riscattati anche se stai giocando a tutto schermo o hai la finestra ridotta a icona.
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+      Twitch Lurker Pro • Costruito per la massima leggerezza e affidabilità • 100% Privacy Friendly
+    </footer>
+
+  </div>
+
+  <!-- Raw userscript embedded directly to avoid file:// CORS issues -->
+  <script type="text/plain" id="userscriptCode">// ==UserScript==
+// @name         Twitch Lurker Pro - Auto Channel Points & Keep-Alive
+// @namespace    https://github.com/norisawa80/lurker-twitch
+// @version      1.0.5
+// @description  Riscatta automaticamente i punti canale bonus di Twitch con ritardo umano e tiene attiva la sessione per i lurker.
+// @author       Twitch Lurker Pro
+// @match        https://www.twitch.tv/*
+// @updateURL    https://raw.githubusercontent.com/norisawa80/lurker-twitch/main/twitch-lurker-points.user.js
+// @downloadURL  https://raw.githubusercontent.com/norisawa80/lurker-twitch/main/twitch-lurker-points.user.js
+// @grant        none
+// @run-at       document-idle
+// ==/UserScript==
+
+(function () {
+  'use strict';
+
+  const CURRENT_VERSION = '1.0.5';
+  const VERSION_CHECK_URL = 'https://raw.githubusercontent.com/norisawa80/lurker-twitch/main/version.json';
+
+  console.log(`%c[Twitch Lurker Pro v${CURRENT_VERSION}]%c Avviato in modalità ultra-leggera!`, 'background: #9146ff; color: #fff; font-weight: bold; padding: 2px 6px; border-radius: 4px;', 'color: #9146ff;');
+
+  let claimedCount = parseInt(localStorage.getItem('tlp_claimed_count') || '0', 10);
+  let isCollapsed = localStorage.getItem('tlp_badge_collapsed') === '1';
+  let isClaiming = false;
+  let latestUpdate = null; // { version, url }
+
+  function isNewerVersion(remote, local) {
+    if (!remote || !local) return false;
+    const r = String(remote).replace(/^v/i, '').split('.').map(Number);
+    const l = String(local).replace(/^v/i, '').split('.').map(Number);
+    for (let i = 0; i < Math.max(r.length, l.length); i++) {
+      const rv = r[i] || 0;
+      const lv = l[i] || 0;
+      if (rv > lv) return true;
+      if (rv < lv) return false;
+    }
+    return false;
+  }
+
+  async function checkRemoteVersion() {
+    try {
+      const res = await fetch(`${VERSION_CHECK_URL}?t=${Date.now()}`, { cache: 'no-store' });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data && data.version && isNewerVersion(data.version, CURRENT_VERSION)) {
+        latestUpdate = {
+          version: data.version,
+          url: data.userscriptUrl || 'https://raw.githubusercontent.com/norisawa80/lurker-twitch/main/twitch-lurker-points.user.js'
+        };
+        renderBadgeContent();
+        console.log(`[Twitch Lurker Pro] 🚀 Nuova versione v${data.version} disponibile!`);
+      }
+    } catch (e) {}
+  }
+
+  // Posiziona il badge sempre sopra "Invia un messaggio" e "Modalità lenta" (tra 118px e 240px dal fondo)
+  function positionBadge() {
+    try {
+      const badge = document.getElementById('tlp-badge');
+      if (!badge) return;
+
+      const inputBox = document.querySelector('[data-a-target="chat-input"]') ||
+                       document.querySelector('[data-test-selector="chat-input-container"]');
+      if (inputBox) {
+        const rect = inputBox.getBoundingClientRect();
+        if (rect.height > 0 && rect.top > 0) {
+          const offsetBottom = Math.min(240, Math.max(118, Math.round(window.innerHeight - rect.top + 42)));
+          badge.style.bottom = offsetBottom + 'px';
+          return;
+        }
+      }
+      badge.style.bottom = '118px';
+    } catch (e) {}
+  }
+
+  function renderBadgeContent() {
+    const badge = document.getElementById('tlp-badge');
+    if (!badge) return;
+
+    const updateHtml = latestUpdate
+      ? `<a href="${latestUpdate.url}" target="_blank" id="tlp-update-link" title="Nuova versione v${latestUpdate.version} disponibile! Clicca per aggiornare con 1 clic" style="margin-left:6px; background:#10b981; color:#042718; font-weight:800; font-size:10px; padding:1px 6px; border-radius:999px; text-decoration:none;">⬆️ v${latestUpdate.version}</a>`
+      : '';
+
+    if (isCollapsed) {
+      badge.innerHTML = `<span title="Clicca per mostrare il contatore Lurker Pro (oppure premi Alt+B)" style="cursor:pointer; font-size:13px;">💎</span>${updateHtml}`;
+      badge.style.padding = '4px 7px';
+      badge.style.opacity = latestUpdate ? '0.95' : '0.55';
+    } else {
+      badge.innerHTML = `
+        <span>💎 Lurker Pro: <strong id="tlp-count">${claimedCount * 50}</strong> pts</span>
+        ${updateHtml}
+        <span id="tlp-close-btn" title="Nascondi badge (oppure premi Alt+B)" style="margin-left:7px; cursor:pointer; opacity:0.65; font-size:10px; padding:1px 3px;">✕</span>
+      `;
+      badge.style.padding = '4px 10px';
+      badge.style.opacity = '0.95';
+    }
+
+    const updateLink = document.getElementById('tlp-update-link');
+    if (updateLink) {
+      updateLink.addEventListener('click', (ev) => ev.stopPropagation());
+    }
+  }
+
+  // Inietta il badge sopra la casella chat in basso a destra
+  function injectBadge() {
+    try {
+      if (!document.body) return;
+      if (document.getElementById('tlp-badge')) {
+        positionBadge();
+        return;
+      }
+
+      const badge = document.createElement('div');
+      badge.id = 'tlp-badge';
+      badge.setAttribute('style', `
+        position: fixed;
+        bottom: 118px;
+        right: 18px;
+        z-index: 2147483647;
+        display: inline-flex;
+        align-items: center;
+        background: rgba(14, 14, 16, 0.92);
+        border: 1px solid #9146ff;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.7), 0 0 10px rgba(145, 70, 255, 0.35);
+        color: #efeff1;
+        font-size: 11px;
+        font-weight: 600;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        padding: 4px 10px;
+        border-radius: 20px;
+        cursor: pointer;
+        backdrop-filter: blur(8px);
+        user-select: none;
+        transition: bottom 0.15s ease, opacity 0.2s ease;
+      `);
+      document.body.appendChild(badge);
+      renderBadgeContent();
+      positionBadge();
+
+      // Clic sul badge (o sulla ✕ / 💎) per nasconderlo o riaprirlo
+      badge.addEventListener('click', () => {
+        isCollapsed = !isCollapsed;
+        localStorage.setItem('tlp_badge_collapsed', isCollapsed ? '1' : '0');
+        renderBadgeContent();
+      });
+
+      // Scorciatoia da tastiera Alt + B per mostrare/nascondere
+      document.addEventListener('keydown', (e) => {
+        if (e.altKey && (e.key === 'b' || e.key === 'B')) {
+          e.preventDefault();
+          isCollapsed = !isCollapsed;
+          localStorage.setItem('tlp_badge_collapsed', isCollapsed ? '1' : '0');
+          renderBadgeContent();
+        }
+      });
+
+      document.addEventListener('input', positionBadge, { passive: true });
+      window.addEventListener('resize', positionBadge, { passive: true });
+    } catch (e) {}
+  }
+
+  function updateBadge() {
+    const el = document.getElementById('tlp-count');
+    if (el) el.textContent = claimedCount * 50;
+  }
+
+  // Trova il pulsante del baule in modo rapido e leggero
+  function findBonusButton() {
+    try {
+      const bonusIcon = document.querySelector('.claimable-bonus__icon');
+      if (bonusIcon) {
+        return bonusIcon.closest('button') || bonusIcon.closest('[role="button"]') || bonusIcon;
+      }
+
+      const selectors = [
+        'button[aria-label*="Claim" i]',
+        'button[aria-label*="bonus" i]',
+        'button[aria-label*="riscatta" i]',
+        'button[aria-label*="richiedi" i]',
+        'button[data-test-selector="community-points-claim-button"]'
+      ];
+
+      for (const sel of selectors) {
+        const btn = document.querySelector(sel);
+        if (btn) return btn;
+      }
+
+      const summary = document.querySelector('[data-test-selector="community-points-summary"]') ||
+                      document.querySelector('.community-points-summary');
+      if (summary) {
+        const buttons = summary.querySelectorAll('button');
+        if (buttons.length > 1) {
+          return buttons[buttons.length - 1];
+        }
+      }
+    } catch (e) {}
+
+    return null;
+  }
+
+  // Clic naturale sul pulsante
+  function triggerClick(target) {
+    if (!target) return;
+    const btn = target.closest('button') || target.closest('[role="button"]') || target;
+    try {
+      const rect = btn.getBoundingClientRect();
+      const evt = {
+        bubbles: true,
+        cancelable: true,
+        view: window,
+        clientX: rect.left + rect.width / 2,
+        clientY: rect.top + rect.height / 2
+      };
+      btn.dispatchEvent(new PointerEvent('pointerdown', evt));
+      btn.dispatchEvent(new MouseEvent('mousedown', evt));
+      btn.dispatchEvent(new PointerEvent('pointerup', evt));
+      btn.dispatchEvent(new MouseEvent('mouseup', evt));
+      btn.click();
+    } catch (e) {
+      btn.click();
+    }
+  }
+
+  // Controllo periodico del bonus
+  function checkAndClaim() {
+    if (isClaiming) return;
+
+    const btn = findBonusButton();
+    if (btn) {
+      isClaiming = true;
+      const delay = Math.floor(Math.random() * 1300) + 1200;
+      console.log(`[Twitch Lurker Pro] 🎁 Baule rilevato! Riscatto tra ${(delay / 1000).toFixed(1)}s...`);
+
+      setTimeout(() => {
+        const currentBtn = findBonusButton();
+        if (currentBtn) {
+          triggerClick(currentBtn);
+          claimedCount++;
+          localStorage.setItem('tlp_claimed_count', claimedCount.toString());
+          updateBadge();
+          console.log(`[Twitch Lurker Pro] 🎉 Baule riscattato con successo! Totale: +${claimedCount * 50} punti.`);
+        }
+        setTimeout(() => {
+          isClaiming = false;
+        }, 1500);
+      }, delay);
+    }
+  }
+
+  // Keep-Alive leggero ogni 2.5 minuti
+  setInterval(() => {
+    try {
+      document.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 200, clientY: 200 }));
+    } catch (e) {}
+  }, 150000);
+
+  // Avvia subito il badge, controllo versione e i controlli periodici
+  injectBadge();
+  setTimeout(injectBadge, 1500);
+  setTimeout(checkRemoteVersion, 4000);
+  setInterval(checkRemoteVersion, 4 * 60 * 60 * 1000);
+  setInterval(injectBadge, 5000);
+  setInterval(checkAndClaim, 2500);
+})();</script>
+
+  <!-- Interactive JavaScript logic -->
+  <script>
+    let detectedPath = '';
+
+    // Rilevamento automatico del percorso reale su QUALSIASI computer (Windows, Mac, Linux)
+    function detectLocalPath() {
+      try {
+        if (window.location.protocol === 'file:') {
+          let full = decodeURIComponent(window.location.pathname);
+          // Riconosce Windows se inizia con /C:/ oppure contiene indicazione di drive
+          const isWindows = /^\/[a-zA-Z]:\//.test(full) || navigator.userAgent.includes('Windows') || navigator.platform.includes('Win');
+          let separator = isWindows ? '\\' : '/';
+
+          if (isWindows && full.startsWith('/')) {
+            full = full.substring(1);
+            full = full.replace(/\//g, '\\');
+          } else if (!isWindows) {
+            full = full.replace(/\\/g, '/');
+          }
+
+          const parts = full.split(separator);
+          parts.pop(); // Rimuove INSTALLA.html
+          const computed = parts.join(separator);
+
+          if (computed) {
+            detectedPath = computed;
+            const el = document.getElementById('folderPathText');
+            if (el) el.textContent = detectedPath;
+            return;
+          }
+        }
+      } catch (e) {
+        console.error('Errore rilevamento percorso locale:', e);
+      }
+
+      // Fallback universale generico se aperto da server o se il file protocol non è accessibile
+      detectedPath = 'Cartella "lurker-twitch"';
+      const el = document.getElementById('folderPathText');
+      if (el) el.textContent = 'Seleziona la cartella "lurker-twitch" estratta';
+      const st = document.getElementById('detectedStatus');
+      if (st) st.innerHTML = '📁 <strong>Cartella del progetto da selezionare:</strong>';
+    }
+
+    // Esegui subito per evitare qualsiasi ritardo grafico
+    detectLocalPath();
+
+    // Mostra notifica toast
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      const text = document.getElementById('toastText');
+      if (text) text.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 3000);
+    }
+
+    // Copia percorso cartella
+    function copyFolder() {
+      navigator.clipboard.writeText(detectedPath).then(() => {
+        const btn = document.getElementById('btnCopyPath');
+        btn.innerHTML = '<span>✓</span> PERCORSO COPIATO NEGLI APPUNTI!';
+        btn.classList.add('copied');
+
+        // Aggiorna indicatori di progresso visivo
+        document.getElementById('card-step1').classList.add('completed');
+        document.getElementById('badge-step1').innerHTML = '✓';
+        document.getElementById('prog1').classList.remove('active');
+        document.getElementById('prog1').classList.add('done');
+        document.getElementById('prog2').classList.add('active');
+        document.getElementById('step1-status').textContent = '— Completato!';
+
+        showToast('✓ Percorso copiato! Ora passa al Passo 2.');
+
+        setTimeout(() => {
+          btn.innerHTML = '<span>📋</span> RICLIСCA PER RICOPLARE SE SERVE';
+        }, 4000);
+      }).catch(() => {
+        showToast('Seleziona il testo del percorso e premi Ctrl + C');
+      });
+    }
+
+    // Copia URL estensioni browser
+    function copyExtUrl() {
+      const url = document.getElementById('browserExtUrl').textContent;
+      navigator.clipboard.writeText(url).then(() => {
+        document.getElementById('prog2').classList.add('done');
+        document.getElementById('prog3').classList.add('active');
+        showToast('✓ ' + url + ' copiato! Incollalo in una nuova scheda.');
+      });
+    }
+
+    // Copia codice userscript pulito
+    function copyScriptCode() {
+      const code = document.getElementById('userscriptCode').textContent.trim();
+      navigator.clipboard.writeText(code).then(() => {
+        showToast('✓ Codice script copiato! Incollalo in Tampermonkey.');
+      });
+    }
+
+    // Cambio browser (Tab)
+    function switchBrowser(browser) {
+      const buttons = document.querySelectorAll('.browser-btn');
+      buttons.forEach(b => b.classList.remove('active'));
+
+      document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+
+      const extUrl = document.getElementById('browserExtUrl');
+
+      if (browser === 'chrome') {
+        buttons[0].classList.add('active');
+        document.getElementById('pane-chrome').classList.add('active');
+        if (extUrl) extUrl.textContent = 'chrome://extensions';
+      } else if (browser === 'edge') {
+        buttons[1].classList.add('active');
+        document.getElementById('pane-chrome').classList.add('active');
+        if (extUrl) extUrl.textContent = 'edge://extensions';
+      } else if (browser === 'firefox') {
+        buttons[2].classList.add('active');
+        document.getElementById('pane-firefox').classList.add('active');
+      } else if (browser === 'tampermonkey') {
+        buttons[3].classList.add('active');
+        document.getElementById('pane-tampermonkey').classList.add('active');
+      }
+    }
+
+    // Accordion FAQ
+    function toggleFaq(el) {
+      el.classList.toggle('open');
+    }
+
+    // Animazione punti demo per gratificare l'utente
+    let demoPts = 150;
+    setInterval(() => {
+      demoPts += 50;
+      const el = document.getElementById('demoPoints');
+      if (el) el.textContent = demoPts;
+    }, 4500);
+
+    window.addEventListener('DOMContentLoaded', () => {
+      detectLocalPath();
+    });
+  </script>
+</body>
+</html>
