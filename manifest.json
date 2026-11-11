@@ -1,7 +1,7 @@
-{
+﻿{
   "manifest_version": 3,
   "name": "Twitch Lurker Pro - Auto Points & Keep-Alive",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Riscatta automaticamente i punti canale bonus di Twitch e simula attività naturale per prevenire l'esclusione del lurk.",
   "icons": {
     "16": "icons/icon16.png",

@@ -170,7 +170,20 @@
     });
   }
 
-  // Trova il pulsante del baule in modo rapido e sicuro
+  function isRaidActive() {
+    try {
+      if (document.querySelector('[data-test-selector*="raid" i], [class*="raid-banner" i], [aria-label*="raid" i]')) {
+        return true;
+      }
+      const inputBox = document.querySelector('[data-a-target="chat-input"]');
+      if (inputBox && inputBox.textContent && inputBox.textContent.trim().toLowerCase().startsWith('/raid')) {
+        return true;
+      }
+    } catch (e) {}
+    return false;
+  }
+
+  // Trova ESCLUSIVAMENTE il pulsante del baule in modo rapido e sicuro
   function findBonusButton() {
     try {
       const bonusIcon = document.querySelector('.claimable-bonus__icon');
@@ -178,26 +191,20 @@
         return bonusIcon.closest('button') || bonusIcon.closest('[role="button"]') || bonusIcon;
       }
 
+      const summary = document.querySelector('[data-test-selector="community-points-summary"]') ||
+                      document.querySelector('.community-points-summary');
+      const root = summary || document;
+
       const selectors = [
-        'button[aria-label*="Claim" i]',
-        'button[aria-label*="bonus" i]',
-        'button[aria-label*="riscatta" i]',
-        'button[aria-label*="richiedi" i]',
+        'button[aria-label*="Claim Bonus" i]',
+        'button[aria-label*="Riscatta bonus" i]',
+        'button[aria-label*="Richiedi bonus" i]',
         'button[data-test-selector="community-points-claim-button"]'
       ];
 
       for (const sel of selectors) {
-        const btn = document.querySelector(sel);
+        const btn = root.querySelector(sel);
         if (btn) return btn;
-      }
-
-      const summary = document.querySelector('[data-test-selector="community-points-summary"]') ||
-                      document.querySelector('.community-points-summary');
-      if (summary) {
-        const buttons = summary.querySelectorAll('button');
-        if (buttons.length > 1) {
-          return buttons[buttons.length - 1];
-        }
       }
     } catch (e) {}
 
@@ -293,7 +300,7 @@
   }
 
   function checkAndClaim() {
-    if (!config.enabled || isClaiming) return;
+    if (!config.enabled || isClaiming || isRaidActive()) return;
 
     const btn = findBonusButton();
     if (btn) {
@@ -323,6 +330,7 @@
     if (config.keepAlive && config.enabled) {
       keepAliveInterval = setInterval(() => {
         try {
+          if (isRaidActive()) return;
           document.dispatchEvent(new MouseEvent('mousemove', {
             bubbles: true,
             clientX: Math.floor(Math.random() * 200) + 50,
