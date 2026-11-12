@@ -3,7 +3,7 @@ set -e
 
 cd "$(dirname "$0")"
 echo "============================================================"
-echo "  🔄 TWITCH LURKER PRO - AGGIORNAMENTO AUTOMATICO (LINUX)"
+echo "  ðŸ”„ TWITCH LURKER PRO - AGGIORNAMENTO AUTOMATICO (LINUX)"
 echo "============================================================"
 echo ""
 
@@ -25,5 +25,5 @@ fi
 
 chmod +x aggiorna-estensione.sh 2>/dev/null || true
 echo ""
-echo "✅ [SUCCESSO] Cartella aggiornata all'ultima versione!"
-echo "👉 Ora vai su vivaldi://extensions (o chrome://extensions) e premi l'icona 🔄 Ricarica."
+echo "âœ… [SUCCESSO] Cartella aggiornata all'ultima versione!"
+echo "ðŸ‘‰ Ora vai su vivaldi://extensions (o chrome://extensions) e premi l'icona ðŸ”„ Ricarica."
