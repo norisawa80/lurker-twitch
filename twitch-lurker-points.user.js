@@ -1,7 +1,7 @@
 ﻿// ==UserScript==
 // @name         Twitch Lurker Pro - Auto Channel Points & Keep-Alive
 // @namespace    https://github.com/norisawa80/lurker-twitch
-// @version      1.0.6
+// @version      1.0.7
 // @description  Riscatta automaticamente i punti canale bonus di Twitch con ritardo umano e tiene attiva la sessione per i lurker.
 // @author       Twitch Lurker Pro
 // @match        https://www.twitch.tv/*
@@ -14,7 +14,7 @@
 (function () {
   'use strict';
 
-  const CURRENT_VERSION = '1.0.6';
+  const CURRENT_VERSION = '1.0.7';
   const VERSION_CHECK_URL = 'https://raw.githubusercontent.com/norisawa80/lurker-twitch/main/version.json';
 
   console.log(`%c[Twitch Lurker Pro v${CURRENT_VERSION}]%c Avviato in modalità ultra-leggera!`, 'background: #9146ff; color: #fff; font-weight: bold; padding: 2px 6px; border-radius: 4px;', 'color: #9146ff;');
@@ -164,12 +164,20 @@
     if (el) el.textContent = claimedCount * 50;
   }
 
-  // Verifica se c'è un raid in corso o se l'utente sta interagendo con un menu raid
+  // Verifica se c'è un raid in corso (controlla sia selettori che il testo visibile nella chat)
   function isRaidActive() {
     try {
-      // Se c'è un banner o modale di raid attivo su Twitch, non fare alcun clic automatico
-      if (document.querySelector('[data-test-selector*="raid" i], [class*="raid-banner" i], [aria-label*="raid" i]')) {
+      if (document.querySelector('[data-test-selector*="raid" i], [data-a-target*="raid" i], [class*="raid" i], [aria-label*="raid" i]')) {
         return true;
+      }
+      // Controlla se nella parte alta della chat c'è un banner con testo "raid" / "annulla"
+      const chatRoom = document.querySelector('.chat-room__content, [data-a-target="chat-scroller"], .stream-chat');
+      if (chatRoom) {
+        const banners = chatRoom.querySelectorAll('[role="region"], [role="alert"], [role="status"], .chat-room__notifications > *');
+        for (const b of banners) {
+          const txt = (b.textContent || '').toLowerCase();
+          if (txt.includes('raid') || txt.includes('unraid')) return true;
+        }
       }
       // Se l'utente sta scrivendo "/raid" in chat
       const inputBox = document.querySelector('[data-a-target="chat-input"]');
@@ -180,29 +188,59 @@
     return false;
   }
 
-  // Trova ESCLUSIVAMENTE il pulsante del baule bonus (senza mai toccare altri pulsanti)
+  // Trova ESCLUSIVAMENTE il pulsante del baule bonus in fondo alla chat (con 4 blocchi di sicurezza anti-raid)
   function findBonusButton() {
     try {
-      const bonusIcon = document.querySelector('.claimable-bonus__icon');
-      if (bonusIcon) {
-        return bonusIcon.closest('button') || bonusIcon.closest('[role="button"]') || bonusIcon;
-      }
-
+      // BLOCCO 1: Cerca SOLO dentro il contenitore dei punti canale in fondo alla chat (MAI nel resto della pagina)
       const summary = document.querySelector('[data-test-selector="community-points-summary"]') ||
-                      document.querySelector('.community-points-summary');
-      const root = summary || document;
+                      document.querySelector('.community-points-summary') ||
+                      document.querySelector('.chat-input__buttons-container');
+      if (!summary) return null;
 
-      const selectors = [
-        'button[aria-label*="Claim Bonus" i]',
-        'button[aria-label*="Riscatta bonus" i]',
-        'button[aria-label*="Richiedi bonus" i]',
-        'button[data-test-selector="community-points-claim-button"]'
-      ];
-
-      for (const sel of selectors) {
-        const btn = root.querySelector(sel);
-        if (btn) return btn;
+      let candidate = null;
+      const bonusIcon = summary.querySelector('.claimable-bonus__icon');
+      if (bonusIcon) {
+        candidate = bonusIcon.closest('button') || bonusIcon.closest('[role="button"]');
       }
+
+      if (!candidate) {
+        const selectors = [
+          'button[data-test-selector="community-points-claim-button"]',
+          'button[aria-label*="Claim Bonus" i]',
+          'button[aria-label*="Riscatta bonus" i]',
+          'button[aria-label*="Richiedi bonus" i]'
+        ];
+        for (const sel of selectors) {
+          const btn = summary.querySelector(sel);
+          if (btn) {
+            candidate = btn;
+            break;
+          }
+        }
+      }
+
+      if (!candidate) return null;
+
+      // BLOCCO 2: Escludi qualsiasi bottone che contenga testo di Raid / Annulla / Abbandona
+      const btnText = ((candidate.textContent || '') + ' ' + (candidate.getAttribute('aria-label') || '')).toLowerCase();
+      if (/raid|annulla|cancel|leave|abbandona|esci|unraid/i.test(btnText)) {
+        return null;
+      }
+
+      // BLOCCO 3: Verifica geometrica — il baule DEVE trovarsi nella barra in basso (sotto la casella "Invia un messaggio")
+      const btnRect = candidate.getBoundingClientRect();
+      if (btnRect.top < window.innerHeight - 180) {
+        return null; // Troppo in alto per essere la barra punti in fondo alla chat!
+      }
+      const inputBox = document.querySelector('[data-a-target="chat-input"]');
+      if (inputBox) {
+        const inputRect = inputBox.getBoundingClientRect();
+        if (inputRect.height > 0 && btnRect.top < inputRect.top) {
+          return null; // È sopra la casella dove si scrive: non toccarlo mai!
+        }
+      }
+
+      return candidate;
     } catch (e) {}
 
     return null;

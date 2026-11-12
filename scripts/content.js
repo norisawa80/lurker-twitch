@@ -172,8 +172,16 @@
 
   function isRaidActive() {
     try {
-      if (document.querySelector('[data-test-selector*="raid" i], [class*="raid-banner" i], [aria-label*="raid" i]')) {
+      if (document.querySelector('[data-test-selector*="raid" i], [data-a-target*="raid" i], [class*="raid" i], [aria-label*="raid" i]')) {
         return true;
+      }
+      const chatRoom = document.querySelector('.chat-room__content, [data-a-target="chat-scroller"], .stream-chat');
+      if (chatRoom) {
+        const banners = chatRoom.querySelectorAll('[role="region"], [role="alert"], [role="status"], .chat-room__notifications > *');
+        for (const b of banners) {
+          const txt = (b.textContent || '').toLowerCase();
+          if (txt.includes('raid') || txt.includes('unraid')) return true;
+        }
       }
       const inputBox = document.querySelector('[data-a-target="chat-input"]');
       if (inputBox && inputBox.textContent && inputBox.textContent.trim().toLowerCase().startsWith('/raid')) {
@@ -183,29 +191,59 @@
     return false;
   }
 
-  // Trova ESCLUSIVAMENTE il pulsante del baule in modo rapido e sicuro
+  // Trova ESCLUSIVAMENTE il pulsante del baule bonus in fondo alla chat (con 4 blocchi di sicurezza anti-raid)
   function findBonusButton() {
     try {
-      const bonusIcon = document.querySelector('.claimable-bonus__icon');
-      if (bonusIcon) {
-        return bonusIcon.closest('button') || bonusIcon.closest('[role="button"]') || bonusIcon;
-      }
-
+      // BLOCCO 1: Cerca SOLO dentro il contenitore dei punti canale in fondo alla chat (MAI nel resto della pagina)
       const summary = document.querySelector('[data-test-selector="community-points-summary"]') ||
-                      document.querySelector('.community-points-summary');
-      const root = summary || document;
+                      document.querySelector('.community-points-summary') ||
+                      document.querySelector('.chat-input__buttons-container');
+      if (!summary) return null;
 
-      const selectors = [
-        'button[aria-label*="Claim Bonus" i]',
-        'button[aria-label*="Riscatta bonus" i]',
-        'button[aria-label*="Richiedi bonus" i]',
-        'button[data-test-selector="community-points-claim-button"]'
-      ];
-
-      for (const sel of selectors) {
-        const btn = root.querySelector(sel);
-        if (btn) return btn;
+      let candidate = null;
+      const bonusIcon = summary.querySelector('.claimable-bonus__icon');
+      if (bonusIcon) {
+        candidate = bonusIcon.closest('button') || bonusIcon.closest('[role="button"]');
       }
+
+      if (!candidate) {
+        const selectors = [
+          'button[data-test-selector="community-points-claim-button"]',
+          'button[aria-label*="Claim Bonus" i]',
+          'button[aria-label*="Riscatta bonus" i]',
+          'button[aria-label*="Richiedi bonus" i]'
+        ];
+        for (const sel of selectors) {
+          const btn = summary.querySelector(sel);
+          if (btn) {
+            candidate = btn;
+            break;
+          }
+        }
+      }
+
+      if (!candidate) return null;
+
+      // BLOCCO 2: Escludi qualsiasi bottone che contenga testo di Raid / Annulla / Abbandona
+      const btnText = ((candidate.textContent || '') + ' ' + (candidate.getAttribute('aria-label') || '')).toLowerCase();
+      if (/raid|annulla|cancel|leave|abbandona|esci|unraid/i.test(btnText)) {
+        return null;
+      }
+
+      // BLOCCO 3: Verifica geometrica — il baule DEVE trovarsi nella barra in basso (sotto la casella "Invia un messaggio")
+      const btnRect = candidate.getBoundingClientRect();
+      if (btnRect.top < window.innerHeight - 180) {
+        return null;
+      }
+      const inputBox = document.querySelector('[data-a-target="chat-input"]');
+      if (inputBox) {
+        const inputRect = inputBox.getBoundingClientRect();
+        if (inputRect.height > 0 && btnRect.top < inputRect.top) {
+          return null;
+        }
+      }
+
+      return candidate;
     } catch (e) {}
 
     return null;
