@@ -2,7 +2,30 @@
 (function () {
   'use strict';
 
-  console.log('[Twitch Lurker Pro] Script avviato in modalità leggera.');
+  console.log('[Twitch Lurker Pro] Script avviato con Scudo Anti-Unraid.');
+
+  // SCUDO GLOBALE ANTI-UNRAID: blocca alla radice qualsiasi clic automatico (!e.isTrusted)
+  // se non è ESATTAMENTE sull'icona .claimable-bonus__icon dentro .community-points-summary!
+  ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click'].forEach((evtType) => {
+    window.addEventListener(evtType, (e) => {
+      try {
+        if (!e.isTrusted) {
+          const target = e.target && e.target.closest ? e.target.closest('button, [role="button"]') : null;
+          const inSummary = target && target.closest('[data-test-selector="community-points-summary"], .community-points-summary');
+          const hasChestIcon = target && target.querySelector('.claimable-bonus__icon');
+          const inputBox = document.querySelector('[data-a-target="chat-input"]');
+          const isBelowChat = (!inputBox || !target) ? false : (target.getBoundingClientRect().top >= inputBox.getBoundingClientRect().top);
+
+          if (!inSummary || !hasChestIcon || !isBelowChat || isRaidActive()) {
+            e.stopImmediatePropagation();
+            e.stopPropagation();
+            e.preventDefault();
+            console.warn('[Twitch Lurker Pro] 🛡️ Bloccato clic automatico sospetto fuori dal baule punti:', target);
+          }
+        }
+      } catch (err) {}
+    }, true);
+  });
 
   let config = {
     enabled: true,

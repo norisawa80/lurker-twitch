@@ -1175,7 +1175,7 @@
   <script type="text/plain" id="userscriptCode">// ==UserScript==
 // @name         Twitch Lurker Pro - Auto Channel Points & Keep-Alive
 // @namespace    https://github.com/norisawa80/lurker-twitch
-// @version      1.0.9
+// @version      1.0.10
 // @description  Riscatta automaticamente i punti canale bonus di Twitch con ritardo umano e tiene attiva la sessione per i lurker.
 // @author       Twitch Lurker Pro
 // @match        https://www.twitch.tv/*
@@ -1188,10 +1188,34 @@
 (function () {
   'use strict';
 
-  const CURRENT_VERSION = '1.0.9';
+  const CURRENT_VERSION = '1.0.10';
   const VERSION_CHECK_URL = 'https://raw.githubusercontent.com/norisawa80/lurker-twitch/main/version.json';
 
-  console.log(`%c[Twitch Lurker Pro v${CURRENT_VERSION}]%c Avviato in modalità ultra-leggera!`, 'background: #9146ff; color: #fff; font-weight: bold; padding: 2px 6px; border-radius: 4px;', 'color: #9146ff;');
+  console.log(`%c[Twitch Lurker Pro v${CURRENT_VERSION}]%c Avviato con Scudo Anti-Unraid!`, 'background: #9146ff; color: #fff; font-weight: bold; padding: 2px 6px; border-radius: 4px;', 'color: #9146ff;');
+
+  // SCUDO GLOBALE ANTI-UNRAID: blocca alla radice qualsiasi clic automatico (!e.isTrusted)
+  // generato da script (anche da vecchie versioni duplicate rimaste attive in Tampermonkey)
+  // se non è ESATTAMENTE sull'icona .claimable-bonus__icon dentro .community-points-summary!
+  ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click'].forEach((evtType) => {
+    window.addEventListener(evtType, (e) => {
+      try {
+        if (!e.isTrusted) {
+          const target = e.target && e.target.closest ? e.target.closest('button, [role="button"]') : null;
+          const inSummary = target && target.closest('[data-test-selector="community-points-summary"], .community-points-summary');
+          const hasChestIcon = target && target.querySelector('.claimable-bonus__icon');
+          const inputBox = document.querySelector('[data-a-target="chat-input"]');
+          const isBelowChat = (!inputBox || !target) ? false : (target.getBoundingClientRect().top >= inputBox.getBoundingClientRect().top);
+
+          if (!inSummary || !hasChestIcon || !isBelowChat || isRaidActive()) {
+            e.stopImmediatePropagation();
+            e.stopPropagation();
+            e.preventDefault();
+            console.warn('[Twitch Lurker Pro] 🛡️ Bloccato clic automatico sospetto fuori dal baule punti:', target);
+          }
+        }
+      } catch (err) {}
+    }, true);
+  });
 
   let claimedCount = parseInt(localStorage.getItem('tlp_claimed_count') || '0', 10);
   let isCollapsed = localStorage.getItem('tlp_badge_collapsed') === '1';
