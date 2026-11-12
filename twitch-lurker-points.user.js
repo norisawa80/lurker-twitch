@@ -1,7 +1,7 @@
 ﻿// ==UserScript==
 // @name         Twitch Lurker Pro - Auto Channel Points & Keep-Alive
 // @namespace    https://github.com/norisawa80/lurker-twitch
-// @version      1.0.10
+// @version      1.0.11
 // @description  Riscatta automaticamente i punti canale bonus di Twitch con ritardo umano e tiene attiva la sessione per i lurker.
 // @author       Twitch Lurker Pro
 // @match        https://www.twitch.tv/*
@@ -14,7 +14,7 @@
 (function () {
   'use strict';
 
-  const CURRENT_VERSION = '1.0.10';
+  const CURRENT_VERSION = '1.0.11';
   const VERSION_CHECK_URL = 'https://raw.githubusercontent.com/norisawa80/lurker-twitch/main/version.json';
 
   console.log(`%c[Twitch Lurker Pro v${CURRENT_VERSION}]%c Avviato con Scudo Anti-Unraid!`, 'background: #9146ff; color: #fff; font-weight: bold; padding: 2px 6px; border-radius: 4px;', 'color: #9146ff;');
@@ -107,12 +107,12 @@
       : '';
 
     if (isCollapsed) {
-      badge.innerHTML = `<span title="Clicca per mostrare il contatore Lurker Pro (oppure premi Alt+B)" style="cursor:pointer; font-size:13px;">💎</span>${updateHtml}`;
+      badge.innerHTML = `<span title="Twitch Lurker Pro v${CURRENT_VERSION} - Clicca per mostrare (Alt+B)" style="cursor:pointer; font-size:13px;">💎</span>${updateHtml}`;
       badge.style.padding = '4px 7px';
       badge.style.opacity = latestUpdate ? '0.95' : '0.55';
     } else {
       badge.innerHTML = `
-        <span>💎 Lurker Pro: <strong id="tlp-count">${claimedCount * 50}</strong> pts</span>
+        <span>💎 Lurker Pro <small style="opacity:0.65; font-size:9.5px;">v${CURRENT_VERSION}</small>: <strong id="tlp-count">${claimedCount * 50}</strong> pts</span>
         ${updateHtml}
         <span id="tlp-close-btn" title="Nascondi badge (oppure premi Alt+B)" style="margin-left:7px; cursor:pointer; opacity:0.65; font-size:10px; padding:1px 3px;">✕</span>
       `;
@@ -213,55 +213,35 @@
     return false;
   }
 
-  // Trova ESCLUSIVAMENTE il pulsante del baule bonus in fondo alla chat (con 4 blocchi di sicurezza anti-raid)
+  // Trova ESCLUSIVAMENTE l'icona .claimable-bonus__icon dentro .community-points-summary in fondo alla chat
   function findBonusButton() {
     try {
-      // BLOCCO 1: Cerca SOLO dentro il contenitore dei punti canale in fondo alla chat (MAI nel resto della pagina)
       const summary = document.querySelector('[data-test-selector="community-points-summary"]') ||
-                      document.querySelector('.community-points-summary') ||
-                      document.querySelector('.chat-input__buttons-container');
+                      document.querySelector('.community-points-summary');
       if (!summary) return null;
 
-      let candidate = null;
       const bonusIcon = summary.querySelector('.claimable-bonus__icon');
-      if (bonusIcon) {
-        candidate = bonusIcon.closest('button') || bonusIcon.closest('[role="button"]');
-      }
+      if (!bonusIcon) return null;
 
-      if (!candidate) {
-        const selectors = [
-          'button[data-test-selector="community-points-claim-button"]',
-          'button[aria-label*="Claim Bonus" i]',
-          'button[aria-label*="Riscatta bonus" i]',
-          'button[aria-label*="Richiedi bonus" i]'
-        ];
-        for (const sel of selectors) {
-          const btn = summary.querySelector(sel);
-          if (btn) {
-            candidate = btn;
-            break;
-          }
-        }
-      }
-
+      const candidate = bonusIcon.closest('button') || bonusIcon.closest('[role="button"]');
       if (!candidate) return null;
 
-      // BLOCCO 2: Escludi qualsiasi bottone che contenga testo di Raid / Annulla / Abbandona
+      // Escludi qualsiasi bottone che contenga testo di Raid / Annulla / Abbandona
       const btnText = ((candidate.textContent || '') + ' ' + (candidate.getAttribute('aria-label') || '')).toLowerCase();
       if (/raid|annulla|cancel|leave|abbandona|esci|unraid/i.test(btnText)) {
         return null;
       }
 
-      // BLOCCO 3: Verifica geometrica — il baule DEVE trovarsi nella barra in basso (sotto la casella "Invia un messaggio")
+      // Verifica geometrica: il baule DEVE trovarsi nella barra in basso (sotto la casella "Invia un messaggio")
       const btnRect = candidate.getBoundingClientRect();
       if (btnRect.top < window.innerHeight - 180) {
-        return null; // Troppo in alto per essere la barra punti in fondo alla chat!
+        return null;
       }
       const inputBox = document.querySelector('[data-a-target="chat-input"]');
       if (inputBox) {
         const inputRect = inputBox.getBoundingClientRect();
         if (inputRect.height > 0 && btnRect.top < inputRect.top) {
-          return null; // È sopra la casella dove si scrive: non toccarlo mai!
+          return null;
         }
       }
 

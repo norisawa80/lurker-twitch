@@ -70,13 +70,17 @@
       ? `<a href="${latestUpdate.url}" target="_blank" id="tlp-update-link" title="Nuova versione v${latestUpdate.version} disponibile! Clicca per scaricare" style="margin-left:6px; background:#10b981; color:#042718; font-weight:800; font-size:10px; padding:1px 6px; border-radius:999px; text-decoration:none;">⬆️ v${latestUpdate.version}</a>`
       : '';
 
+    const extVer = (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getManifest)
+      ? chrome.runtime.getManifest().version
+      : '1.0.11';
+
     if (isCollapsed) {
-      badge.innerHTML = `<span title="Clicca per mostrare il contatore Lurker Pro (Alt+B)" style="cursor:pointer; font-size:13px;">💎</span>${updateHtml}`;
+      badge.innerHTML = `<span title="Twitch Lurker Pro v${extVer} - Clicca per mostrare (Alt+B)" style="cursor:pointer; font-size:13px;">💎</span>${updateHtml}`;
       badge.style.padding = '4px 7px';
       badge.style.opacity = latestUpdate ? '0.95' : '0.55';
     } else {
       badge.innerHTML = `
-        <span>💎 Lurker Pro: <strong id="tlp-count">${currentPoints}</strong> pts</span>
+        <span>💎 Lurker Pro <small style="opacity:0.65; font-size:9.5px;">v${extVer}</small>: <strong id="tlp-count">${currentPoints}</strong> pts</span>
         ${updateHtml}
         <span id="tlp-close-btn" title="Nascondi badge (Alt+B)" style="margin-left:7px; cursor:pointer; opacity:0.65; font-size:10px; padding:1px 3px;">✕</span>
       `;
@@ -228,46 +232,26 @@
     return false;
   }
 
-  // Trova ESCLUSIVAMENTE il pulsante del baule bonus in fondo alla chat (con 4 blocchi di sicurezza anti-raid)
+  // Trova ESCLUSIVAMENTE l'icona .claimable-bonus__icon dentro .community-points-summary in fondo alla chat
   function findBonusButton() {
     try {
-      // BLOCCO 1: Cerca SOLO dentro il contenitore dei punti canale in fondo alla chat (MAI nel resto della pagina)
       const summary = document.querySelector('[data-test-selector="community-points-summary"]') ||
-                      document.querySelector('.community-points-summary') ||
-                      document.querySelector('.chat-input__buttons-container');
+                      document.querySelector('.community-points-summary');
       if (!summary) return null;
 
-      let candidate = null;
       const bonusIcon = summary.querySelector('.claimable-bonus__icon');
-      if (bonusIcon) {
-        candidate = bonusIcon.closest('button') || bonusIcon.closest('[role="button"]');
-      }
+      if (!bonusIcon) return null;
 
-      if (!candidate) {
-        const selectors = [
-          'button[data-test-selector="community-points-claim-button"]',
-          'button[aria-label*="Claim Bonus" i]',
-          'button[aria-label*="Riscatta bonus" i]',
-          'button[aria-label*="Richiedi bonus" i]'
-        ];
-        for (const sel of selectors) {
-          const btn = summary.querySelector(sel);
-          if (btn) {
-            candidate = btn;
-            break;
-          }
-        }
-      }
-
+      const candidate = bonusIcon.closest('button') || bonusIcon.closest('[role="button"]');
       if (!candidate) return null;
 
-      // BLOCCO 2: Escludi qualsiasi bottone che contenga testo di Raid / Annulla / Abbandona
+      // Escludi qualsiasi bottone che contenga testo di Raid / Annulla / Abbandona
       const btnText = ((candidate.textContent || '') + ' ' + (candidate.getAttribute('aria-label') || '')).toLowerCase();
       if (/raid|annulla|cancel|leave|abbandona|esci|unraid/i.test(btnText)) {
         return null;
       }
 
-      // BLOCCO 3: Verifica geometrica — il baule DEVE trovarsi nella barra in basso (sotto la casella "Invia un messaggio")
+      // Verifica geometrica: il baule DEVE trovarsi nella barra in basso (sotto la casella "Invia un messaggio")
       const btnRect = candidate.getBoundingClientRect();
       if (btnRect.top < window.innerHeight - 180) {
         return null;
