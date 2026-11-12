@@ -1,8 +1,8 @@
 ﻿{
-    "version":  "1.0.11",
+    "version":  "1.0.12",
     "releaseDate":  "2026-11-13",
     "downloadUrl":  "https://github.com/norisawa80/lurker-twitch/archive/refs/heads/main.zip",
     "userscriptUrl":  "https://raw.githubusercontent.com/norisawa80/lurker-twitch/main/twitch-lurker-points.user.js",
     "repoUrl":  "https://github.com/norisawa80/lurker-twitch",
-    "notes":  "Mostra versione reale sul badge (v1.0.11) e blocca qualsiasi clic fuori dal forziere verde."
+    "notes":  "Badge posizionato in alto in cima alla chat (top: 56px) con rimozione automatica di eventuali vecchi badge in basso."
 }

@@ -41,29 +41,23 @@
   let isCollapsed = localStorage.getItem('tlp_badge_collapsed') === '1';
   let latestUpdate = null; // { version, url }
 
-  // Posiziona il badge in ALTO all'inizio della chat (subito sotto "Chat dello streaming")
+  // Posiziona il badge in ALTO sopra la chat (nella barra superiore della chat, top: 56px)
   function positionBadge() {
     try {
-      const badge = document.getElementById('tlp-badge');
+      const legacyBadge = document.getElementById('tlp-badge');
+      if (legacyBadge) legacyBadge.remove();
+
+      const badge = document.getElementById('tlp-badge-v2');
       if (!badge) return;
 
-      const chatScroller = document.querySelector('[data-a-target="chat-scroller"]') ||
-                           document.querySelector('.chat-scrollable-area__message-container');
-      if (chatScroller) {
-        const rect = chatScroller.getBoundingClientRect();
-        if (rect.height > 0 && rect.top >= 40 && rect.top <= 250) {
-          badge.style.top = Math.round(rect.top + 8) + 'px';
-          badge.style.bottom = 'auto';
-          return;
-        }
-      }
-      badge.style.top = '92px';
-      badge.style.bottom = 'auto';
+      badge.style.setProperty('top', '56px', 'important');
+      badge.style.setProperty('bottom', 'auto', 'important');
+      badge.style.setProperty('right', '46px', 'important');
     } catch (e) {}
   }
 
   function renderBadgeContent() {
-    const badge = document.getElementById('tlp-badge');
+    const badge = document.getElementById('tlp-badge-v2');
     if (!badge) return;
 
     const updateHtml = latestUpdate
@@ -72,7 +66,7 @@
 
     const extVer = (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getManifest)
       ? chrome.runtime.getManifest().version
-      : '1.0.11';
+      : '1.0.12';
 
     if (isCollapsed) {
       badge.innerHTML = `<span title="Twitch Lurker Pro v${extVer} - Clicca per mostrare (Alt+B)" style="cursor:pointer; font-size:13px;">💎</span>${updateHtml}`;
@@ -116,7 +110,11 @@
   function injectBadge() {
     try {
       if (!document.body) return;
-      const existing = document.getElementById('tlp-badge');
+
+      const legacyBadge = document.getElementById('tlp-badge');
+      if (legacyBadge) legacyBadge.remove();
+
+      const existing = document.getElementById('tlp-badge-v2');
       if (existing) {
         existing.style.display = (config.enabled && config.showBadge !== false) ? 'inline-flex' : 'none';
         positionBadge();
@@ -124,15 +122,16 @@
       }
 
       const badge = document.createElement('div');
-      badge.id = 'tlp-badge';
+      badge.id = 'tlp-badge-v2';
       badge.setAttribute('style', `
-        position: fixed;
-        top: 92px;
-        right: 18px;
-        z-index: 2147483647;
+        position: fixed !important;
+        top: 56px !important;
+        bottom: auto !important;
+        right: 46px !important;
+        z-index: 2147483647 !important;
         display: ${(config.enabled && config.showBadge !== false) ? 'inline-flex' : 'none'};
         align-items: center;
-        background: rgba(14, 14, 16, 0.92);
+        background: rgba(14, 14, 16, 0.94);
         border: 1px solid #9146ff;
         box-shadow: 0 4px 16px rgba(0, 0, 0, 0.7), 0 0 10px rgba(145, 70, 255, 0.35);
         color: #efeff1;
@@ -144,7 +143,7 @@
         cursor: pointer;
         backdrop-filter: blur(8px);
         user-select: none;
-        transition: top 0.15s ease, opacity 0.2s ease;
+        transition: opacity 0.2s ease;
       `);
       document.body.appendChild(badge);
       renderBadgeContent();
