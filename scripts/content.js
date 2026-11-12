@@ -18,23 +18,24 @@
   let isCollapsed = localStorage.getItem('tlp_badge_collapsed') === '1';
   let latestUpdate = null; // { version, url }
 
-  // Posiziona il badge sempre sopra "Invia un messaggio" e "Modalità lenta" (tra 118px e 240px dal fondo)
+  // Posiziona il badge in ALTO all'inizio della chat (subito sotto "Chat dello streaming")
   function positionBadge() {
     try {
       const badge = document.getElementById('tlp-badge');
       if (!badge) return;
 
-      const inputBox = document.querySelector('[data-a-target="chat-input"]') ||
-                       document.querySelector('[data-test-selector="chat-input-container"]');
-      if (inputBox) {
-        const rect = inputBox.getBoundingClientRect();
-        if (rect.height > 0 && rect.top > 0) {
-          const offsetBottom = Math.min(240, Math.max(118, Math.round(window.innerHeight - rect.top + 42)));
-          badge.style.bottom = offsetBottom + 'px';
+      const chatScroller = document.querySelector('[data-a-target="chat-scroller"]') ||
+                           document.querySelector('.chat-scrollable-area__message-container');
+      if (chatScroller) {
+        const rect = chatScroller.getBoundingClientRect();
+        if (rect.height > 0 && rect.top >= 40 && rect.top <= 250) {
+          badge.style.top = Math.round(rect.top + 8) + 'px';
+          badge.style.bottom = 'auto';
           return;
         }
       }
-      badge.style.bottom = '118px';
+      badge.style.top = '92px';
+      badge.style.bottom = 'auto';
     } catch (e) {}
   }
 
@@ -86,7 +87,7 @@
       badge.id = 'tlp-badge';
       badge.setAttribute('style', `
         position: fixed;
-        bottom: 118px;
+        top: 92px;
         right: 18px;
         z-index: 2147483647;
         display: ${(config.enabled && config.showBadge !== false) ? 'inline-flex' : 'none'};
@@ -103,7 +104,7 @@
         cursor: pointer;
         backdrop-filter: blur(8px);
         user-select: none;
-        transition: bottom 0.15s ease, opacity 0.2s ease;
+        transition: top 0.15s ease, opacity 0.2s ease;
       `);
       document.body.appendChild(badge);
       renderBadgeContent();
