@@ -15,24 +15,52 @@ function isNewerVersion(remote, local) {
   return false;
 }
 
-async function checkForUpdates() {
+function getEffectiveVersion(manifestVer, appliedVer) {
+  if (appliedVer && isNewerVersion(appliedVer, manifestVer)) {
+    return appliedVer;
+  }
+  return manifestVer;
+}
+
+async function checkForUpdates(autoApply = false) {
   try {
-    const currentVersion = chrome.runtime.getManifest().version;
+    const manifestVersion = chrome.runtime.getManifest().version;
+    const stored = await chrome.storage.local.get(['appliedVersion']);
+    const currentVersion = getEffectiveVersion(manifestVersion, stored.appliedVersion);
+
     const res = await fetch(`${VERSION_CHECK_URL}?t=${Date.now()}`, { cache: 'no-store' });
     if (!res.ok) return null;
 
     const data = await res.json();
-    const hasUpdate = isNewerVersion(data.version, currentVersion);
+    const remoteVer = data.version || currentVersion;
+
+    if (autoApply && isNewerVersion(remoteVer, currentVersion)) {
+      const appliedInfo = {
+        appliedVersion: remoteVer,
+        latestVersion: remoteVer,
+        updateAvailable: false,
+        remoteConfig: data.config || { badgePosition: 'top' },
+        updateNotes: data.notes || '',
+        lastUpdateCheck: Date.now()
+      };
+      await chrome.storage.local.set(appliedInfo);
+      chrome.action.setBadgeText({ text: '' });
+      return appliedInfo;
+    }
+
+    const hasUpdate = isNewerVersion(remoteVer, currentVersion);
 
     const updateInfo = {
       updateAvailable: hasUpdate,
-      latestVersion: data.version || currentVersion,
+      latestVersion: remoteVer,
+      appliedVersion: currentVersion,
+      remoteConfig: data.config || { badgePosition: 'top' },
       updateUrl: data.downloadUrl || 'https://github.com/norisawa80/lurker-twitch/archive/refs/heads/main.zip',
       updateNotes: data.notes || '',
       lastUpdateCheck: Date.now()
     };
 
-    chrome.storage.local.set(updateInfo);
+    await chrome.storage.local.set(updateInfo);
 
     if (hasUpdate) {
       chrome.action.setBadgeText({ text: 'NEW' });
@@ -67,28 +95,32 @@ chrome.runtime.onInstalled.addListener((details) => {
   );
 
   chrome.action.setBadgeBackgroundColor({ color: '#9146FF' });
-  checkForUpdates();
+  checkForUpdates(false);
 });
 
 chrome.runtime.onStartup.addListener(() => {
-  checkForUpdates();
+  checkForUpdates(false);
 });
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg && msg.type === 'CHECK_UPDATES') {
-    checkForUpdates().then((info) => sendResponse(info));
+    checkForUpdates(false).then((info) => sendResponse(info));
+    return true;
+  }
+  if (msg && msg.type === 'APPLY_HOT_UPDATE') {
+    checkForUpdates(true).then((info) => sendResponse(info));
     return true;
   }
 });
 
 // Controllo periodico ogni 4 ore
-setInterval(checkForUpdates, 4 * 60 * 60 * 1000);
+setInterval(() => checkForUpdates(false), 4 * 60 * 60 * 1000);
 
 // Ascolta gli aggiornamenti di storage per aggiornare il badge dell'icona
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area === 'local' && changes.totalClaims) {
     chrome.storage.local.get(['updateAvailable'], (res) => {
-      if (res && res.updateAvailable) return; // Mantieni avviso NEW se c'è un aggiornamento
+      if (res && res.updateAvailable) return;
 
       const claims = changes.totalClaims.newValue;
       if (claims > 0) {

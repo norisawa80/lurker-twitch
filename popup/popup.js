@@ -81,14 +81,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Banner aggiornamento versione
+    if (data.appliedVersion && currentVersionTagEl) {
+      currentVersionTagEl.textContent = 'v' + data.appliedVersion;
+    }
     if (data.updateAvailable !== undefined && updateBannerEl) {
       if (data.updateAvailable) {
         updateBannerEl.style.display = 'flex';
         if (data.latestVersion && updateVersionTextEl) {
           updateVersionTextEl.textContent = 'v' + data.latestVersion;
-        }
-        if (data.updateUrl && updateDownloadBtnEl) {
-          updateDownloadBtnEl.href = data.updateUrl;
         }
         if (data.updateNotes && updateNotesTextEl) {
           updateNotesTextEl.textContent = data.updateNotes;
@@ -160,6 +160,20 @@ document.addEventListener('DOMContentLoaded', () => {
   // Controllo aggiornamenti automatico all'apertura del popup + pulsante manuale
   if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
     chrome.runtime.sendMessage({ type: 'CHECK_UPDATES' });
+
+    if (updateDownloadBtnEl) {
+      updateDownloadBtnEl.addEventListener('click', (e) => {
+        e.preventDefault();
+        updateDownloadBtnEl.textContent = '⏳ Aggiornamento...';
+        chrome.runtime.sendMessage({ type: 'APPLY_HOT_UPDATE' }, (info) => {
+          if (info && info.appliedVersion) {
+            if (currentVersionTagEl) currentVersionTagEl.textContent = 'v' + info.appliedVersion;
+            if (updateBannerEl) updateBannerEl.style.display = 'none';
+            if (checkUpdateBtnEl) checkUpdateBtnEl.textContent = `✓ Aggiornato a v${info.appliedVersion}!`;
+          }
+        });
+      });
+    }
 
     if (checkUpdateBtnEl) {
       checkUpdateBtnEl.addEventListener('click', () => {

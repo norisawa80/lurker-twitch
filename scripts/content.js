@@ -63,7 +63,20 @@
 
     const updateLink = document.getElementById('tlp-update-link');
     if (updateLink) {
-      updateLink.addEventListener('click', (ev) => ev.stopPropagation());
+      updateLink.addEventListener('click', (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
+          updateLink.textContent = '⏳...';
+          chrome.runtime.sendMessage({ type: 'APPLY_HOT_UPDATE' }, () => {
+            latestUpdate = null;
+            renderBadgeContent();
+            positionBadge();
+          });
+        } else if (latestUpdate && latestUpdate.url) {
+          window.open(latestUpdate.url, '_blank');
+        }
+      });
     }
   }
 

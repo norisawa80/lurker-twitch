@@ -1,8 +1,8 @@
 ﻿{
-    "version":  "1.0.8",
+    "version":  "1.0.9",
     "releaseDate":  "2026-11-12",
     "downloadUrl":  "https://github.com/norisawa80/lurker-twitch/archive/refs/heads/main.zip",
     "userscriptUrl":  "https://raw.githubusercontent.com/norisawa80/lurker-twitch/main/twitch-lurker-points.user.js",
     "repoUrl":  "https://github.com/norisawa80/lurker-twitch",
-    "notes":  "Badge diamante spostato in alto all\u0027inizio della chat + protezione anti-unraid."
+    "notes":  "Hot-update istantaneo senza scaricare lo zip su Vivaldi/Chrome + script Linux aggiorna-estensione.sh."
 }
