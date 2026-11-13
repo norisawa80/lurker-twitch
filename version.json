@@ -1,6 +1,6 @@
 {
-  "version": "1.0.14",
-  "changelog": "Blocco anti-raid intelligente: 100s all'avvio del raid, riattivazione automatica immediata se il raid viene annullato (/unraid o Annulla) e nuovo blocco di 100s se il raid riparte.",
+  "version": "1.0.15",
+  "changelog": "Risolto bug tasto Aggiorna: ora rileva i file aggiornati su disco e ricarica automaticamente l'estensione e le schede Twitch senza dover riavviare il browser.",
   "downloadUrl": "https://github.com/norisawa80/lurker-twitch/archive/refs/heads/main.zip",
   "userscriptUrl": "https://raw.githubusercontent.com/norisawa80/lurker-twitch/main/twitch-lurker-points.user.js"
 }

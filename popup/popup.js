@@ -21,8 +21,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const currentVersionTagEl = document.getElementById('currentVersionTag');
   const checkUpdateBtnEl = document.getElementById('checkUpdateBtn');
 
-  if (currentVersionTagEl && typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getManifest) {
-    currentVersionTagEl.textContent = 'v' + chrome.runtime.getManifest().version;
+  const manifestVersion = (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getManifest)
+    ? chrome.runtime.getManifest().version
+    : '1.0.15';
+
+  if (currentVersionTagEl) {
+    currentVersionTagEl.textContent = 'v' + manifestVersion;
   }
 
   // Formatta numeri con separatore
@@ -80,18 +84,22 @@ document.addEventListener('DOMContentLoaded', () => {
       renderHistory(data.history);
     }
 
-    // Banner aggiornamento versione
-    if (data.appliedVersion && currentVersionTagEl) {
-      currentVersionTagEl.textContent = 'v' + data.appliedVersion;
+    // Mostra sempre la versione reale caricata nel browser
+    if (currentVersionTagEl) {
+      currentVersionTagEl.textContent = 'v' + manifestVersion;
     }
+
     if (data.updateAvailable !== undefined && updateBannerEl) {
-      if (data.updateAvailable) {
+      if (data.updateAvailable && data.latestVersion !== manifestVersion) {
         updateBannerEl.style.display = 'flex';
         if (data.latestVersion && updateVersionTextEl) {
           updateVersionTextEl.textContent = 'v' + data.latestVersion;
         }
         if (data.updateNotes && updateNotesTextEl) {
           updateNotesTextEl.textContent = data.updateNotes;
+        }
+        if (updateDownloadBtnEl) {
+          updateDownloadBtnEl.textContent = data.diskReady ? '⚡ Attiva subito' : '⬇️ Scarica aggiornamento';
         }
       } else {
         updateBannerEl.style.display = 'none';
@@ -159,17 +167,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Controllo aggiornamenti automatico all'apertura del popup + pulsante manuale
   if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
-    chrome.runtime.sendMessage({ type: 'CHECK_UPDATES' });
+    chrome.runtime.sendMessage({ type: 'CHECK_UPDATES' }, (info) => {
+      if (info && info.reloaded) {
+        if (checkUpdateBtnEl) checkUpdateBtnEl.textContent = `✅ Aggiornato a v${info.appliedVersion}!`;
+        if (currentVersionTagEl) currentVersionTagEl.textContent = 'v' + info.appliedVersion;
+      }
+    });
 
     if (updateDownloadBtnEl) {
       updateDownloadBtnEl.addEventListener('click', (e) => {
         e.preventDefault();
         updateDownloadBtnEl.textContent = '⏳ Aggiornamento...';
         chrome.runtime.sendMessage({ type: 'APPLY_HOT_UPDATE' }, (info) => {
-          if (info && info.appliedVersion) {
+          if (info && info.reloaded) {
             if (currentVersionTagEl) currentVersionTagEl.textContent = 'v' + info.appliedVersion;
             if (updateBannerEl) updateBannerEl.style.display = 'none';
-            if (checkUpdateBtnEl) checkUpdateBtnEl.textContent = `✓ Aggiornato a v${info.appliedVersion}!`;
+            if (checkUpdateBtnEl) checkUpdateBtnEl.textContent = `✅ Aggiornato a v${info.appliedVersion}!`;
+          } else if (info && info.updateUrl) {
+            window.open(info.updateUrl, '_blank');
+            updateDownloadBtnEl.textContent = '📦 Zip scaricato!';
           }
         });
       });
@@ -179,10 +195,13 @@ document.addEventListener('DOMContentLoaded', () => {
       checkUpdateBtnEl.addEventListener('click', () => {
         checkUpdateBtnEl.textContent = '⏳ Controllo...';
         chrome.runtime.sendMessage({ type: 'CHECK_UPDATES' }, (info) => {
-          if (info && info.updateAvailable) {
+          if (info && info.reloaded) {
+            checkUpdateBtnEl.textContent = `✅ Aggiornato a v${info.appliedVersion}!`;
+            if (currentVersionTagEl) currentVersionTagEl.textContent = 'v' + info.appliedVersion;
+          } else if (info && info.updateAvailable) {
             checkUpdateBtnEl.textContent = `🚀 v${info.latestVersion} pronta!`;
           } else {
-            checkUpdateBtnEl.textContent = '✓ Già aggiornato';
+            checkUpdateBtnEl.textContent = `✓ Già alla v${manifestVersion}`;
             setTimeout(() => {
               checkUpdateBtnEl.textContent = '🔄 Controlla aggiornamenti';
             }, 3000);
