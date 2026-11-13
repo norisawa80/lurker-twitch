@@ -1,6 +1,9 @@
 // Twitch Lurker Pro - Popup Logic
 
 document.addEventListener('DOMContentLoaded', () => {
+  const DISK_VERSION = '1.0.17';
+  const VERSION_CHECK_URL = 'https://raw.githubusercontent.com/norisawa80/lurker-twitch/main/version.json';
+
   // Elementi UI
   const toggleEnabled = document.getElementById('toggleEnabled');
   const toggleHumanDelay = document.getElementById('toggleHumanDelay');
@@ -21,12 +24,115 @@ document.addEventListener('DOMContentLoaded', () => {
   const currentVersionTagEl = document.getElementById('currentVersionTag');
   const checkUpdateBtnEl = document.getElementById('checkUpdateBtn');
 
-  const manifestVersion = (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getManifest)
+  // Versione realmente caricata nella RAM del browser
+  const memoryVersion = (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getManifest)
     ? chrome.runtime.getManifest().version
-    : '1.0.16';
+    : DISK_VERSION;
 
   if (currentVersionTagEl) {
-    currentVersionTagEl.textContent = 'v' + manifestVersion;
+    currentVersionTagEl.textContent = 'v' + memoryVersion;
+  }
+
+  function isNewerVersion(remote, local) {
+    if (!remote || !local) return false;
+    const r = String(remote).replace(/^v/i, '').split('.').map(Number);
+    const l = String(local).replace(/^v/i, '').split('.').map(Number);
+    for (let i = 0; i < Math.max(r.length, l.length); i++) {
+      const rv = r[i] || 0;
+      const lv = l[i] || 0;
+      if (rv > lv) return true;
+      if (rv < lv) return false;
+    }
+    return false;
+  }
+
+  async function getDiskManifestVersion() {
+    try {
+      const res = await fetch(chrome.runtime.getURL('manifest.json') + '?t=' + Date.now(), { cache: 'no-store' });
+      if (!res.ok) return DISK_VERSION;
+      const data = await res.json();
+      return (data && data.version) ? String(data.version) : DISK_VERSION;
+    } catch (e) {
+      return DISK_VERSION;
+    }
+  }
+
+  // Ricarica direttamente dall'interno del popup le schede Twitch e l'estensione (senza dipendere dal vecchio Service Worker in RAM)
+  function applyReloadNow(targetVer) {
+    if (updateDownloadBtnEl) updateDownloadBtnEl.textContent = `✅ Aggiornato a v${targetVer}!`;
+    if (checkUpdateBtnEl) checkUpdateBtnEl.textContent = `✅ Aggiornato a v${targetVer}! Ricarico...`;
+    if (currentVersionTagEl) currentVersionTagEl.textContent = 'v' + targetVer;
+
+    if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+      chrome.storage.local.set({
+        updateAvailable: false,
+        latestVersion: targetVer,
+        appliedVersion: targetVer
+      });
+    }
+
+    setTimeout(() => {
+      try {
+        if (typeof chrome !== 'undefined' && chrome.tabs && chrome.tabs.query) {
+          chrome.tabs.query({ url: '*://*.twitch.tv/*' }, (tabs) => {
+            if (tabs && tabs.length > 0) {
+              for (const tab of tabs) {
+                if (tab.id) chrome.tabs.reload(tab.id);
+              }
+            }
+          });
+        }
+      } catch (e) {}
+      setTimeout(() => {
+        chrome.runtime.reload();
+      }, 150);
+    }, 400);
+  }
+
+  // Controlla stato aggiornamenti confrontando RAM vs Disco vs GitHub direttamente nel popup
+  async function checkUpdatesDirectly(autoApplyIfOnDisk = false) {
+    const diskVer = await getDiskManifestVersion();
+
+    // 1. Se su disco c'è già una versione più nuova rispetto a quella in RAM nel browser
+    if (isNewerVersion(diskVer, memoryVersion)) {
+      if (autoApplyIfOnDisk) {
+        applyReloadNow(diskVer);
+        return;
+      }
+      if (updateBannerEl) updateBannerEl.style.display = 'flex';
+      if (updateVersionTextEl) updateVersionTextEl.textContent = 'v' + diskVer;
+      if (updateNotesTextEl) updateNotesTextEl.textContent = 'Aggiornamento già scaricato su disco: clicca per attivarlo subito senza riavviare!';
+      if (updateDownloadBtnEl) updateDownloadBtnEl.textContent = `⚡ Attiva v${diskVer} ora`;
+      if (checkUpdateBtnEl) checkUpdateBtnEl.textContent = `⚡ Attiva v${diskVer} ora`;
+      return;
+    }
+
+    // 2. Controlla su GitHub se c'è una versione più nuova
+    try {
+      const res = await fetch(`${VERSION_CHECK_URL}?t=${Date.now()}`, { cache: 'no-store' });
+      if (!res.ok) return;
+      const data = await res.json();
+      const remoteVer = data.version || memoryVersion;
+
+      if (isNewerVersion(remoteVer, memoryVersion)) {
+        if (updateBannerEl) updateBannerEl.style.display = 'flex';
+        if (updateVersionTextEl) updateVersionTextEl.textContent = 'v' + remoteVer;
+        if (updateNotesTextEl) updateNotesTextEl.textContent = data.changelog || data.notes || '';
+        if (updateDownloadBtnEl) {
+          updateDownloadBtnEl.textContent = '⬇️ Scarica aggiornamento';
+          updateDownloadBtnEl.dataset.downloadUrl = data.downloadUrl || 'https://github.com/norisawa80/lurker-twitch/archive/refs/heads/main.zip';
+        }
+        if (checkUpdateBtnEl) checkUpdateBtnEl.textContent = `🚀 v${remoteVer} disponibile!`;
+      } else {
+        if (updateBannerEl) updateBannerEl.style.display = 'none';
+        if (autoApplyIfOnDisk && checkUpdateBtnEl) {
+          checkUpdateBtnEl.textContent = `✓ Già aggiornato (v${memoryVersion})`;
+          setTimeout(() => {
+            checkUpdateBtnEl.textContent = '🔄 Controlla aggiornamenti';
+          }, 3000);
+        }
+      }
+    } catch (e) {}
   }
 
   // Formatta numeri con separatore
@@ -84,26 +190,9 @@ document.addEventListener('DOMContentLoaded', () => {
       renderHistory(data.history);
     }
 
-    // Mostra sempre la versione reale caricata nel browser
+    // Mostra sempre la versione reale caricata nella RAM del browser
     if (currentVersionTagEl) {
-      currentVersionTagEl.textContent = 'v' + manifestVersion;
-    }
-
-    if (data.updateAvailable !== undefined && updateBannerEl) {
-      if (data.updateAvailable && data.latestVersion !== manifestVersion) {
-        updateBannerEl.style.display = 'flex';
-        if (data.latestVersion && updateVersionTextEl) {
-          updateVersionTextEl.textContent = 'v' + data.latestVersion;
-        }
-        if (data.updateNotes && updateNotesTextEl) {
-          updateNotesTextEl.textContent = data.updateNotes;
-        }
-        if (updateDownloadBtnEl) {
-          updateDownloadBtnEl.textContent = data.diskReady ? '⚡ Attiva subito' : '⬇️ Scarica aggiornamento';
-        }
-      } else {
-        updateBannerEl.style.display = 'none';
-      }
+      currentVersionTagEl.textContent = 'v' + memoryVersion;
     }
 
     // Stato canale
@@ -125,7 +214,6 @@ document.addEventListener('DOMContentLoaded', () => {
       updateUI(data);
     });
 
-    // Ascolta modifiche in tempo reale
     chrome.storage.onChanged.addListener((changes, area) => {
       if (area === 'local') {
         const updated = {};
@@ -165,49 +253,27 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Controllo aggiornamenti automatico all'apertura del popup + pulsante manuale
-  if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
-    chrome.runtime.sendMessage({ type: 'CHECK_UPDATES' }, (info) => {
-      if (info && info.reloaded) {
-        if (checkUpdateBtnEl) checkUpdateBtnEl.textContent = `✅ Aggiornato a v${info.appliedVersion}!`;
-        if (currentVersionTagEl) currentVersionTagEl.textContent = 'v' + info.appliedVersion;
+  // All'apertura del popup controlla subito se c'è una versione pronta su disco o su GitHub
+  checkUpdatesDirectly(false);
+
+  if (updateDownloadBtnEl) {
+    updateDownloadBtnEl.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const diskVer = await getDiskManifestVersion();
+      if (isNewerVersion(diskVer, memoryVersion)) {
+        applyReloadNow(diskVer);
+      } else {
+        const dlUrl = updateDownloadBtnEl.dataset.downloadUrl || 'https://github.com/norisawa80/lurker-twitch/archive/refs/heads/main.zip';
+        window.open(dlUrl, '_blank');
+        updateDownloadBtnEl.textContent = '📦 Zip scaricato!';
       }
     });
+  }
 
-    if (updateDownloadBtnEl) {
-      updateDownloadBtnEl.addEventListener('click', (e) => {
-        e.preventDefault();
-        updateDownloadBtnEl.textContent = '⏳ Aggiornamento...';
-        chrome.runtime.sendMessage({ type: 'APPLY_HOT_UPDATE' }, (info) => {
-          if (info && info.reloaded) {
-            if (currentVersionTagEl) currentVersionTagEl.textContent = 'v' + info.appliedVersion;
-            if (updateBannerEl) updateBannerEl.style.display = 'none';
-            if (checkUpdateBtnEl) checkUpdateBtnEl.textContent = `✅ Aggiornato a v${info.appliedVersion}!`;
-          } else if (info && info.updateUrl) {
-            window.open(info.updateUrl, '_blank');
-            updateDownloadBtnEl.textContent = '📦 Zip scaricato!';
-          }
-        });
-      });
-    }
-
-    if (checkUpdateBtnEl) {
-      checkUpdateBtnEl.addEventListener('click', () => {
-        checkUpdateBtnEl.textContent = '⏳ Controllo...';
-        chrome.runtime.sendMessage({ type: 'CHECK_UPDATES' }, (info) => {
-          if (info && info.reloaded) {
-            checkUpdateBtnEl.textContent = `✅ Aggiornato a v${info.appliedVersion}!`;
-            if (currentVersionTagEl) currentVersionTagEl.textContent = 'v' + info.appliedVersion;
-          } else if (info && info.updateAvailable) {
-            checkUpdateBtnEl.textContent = `🚀 v${info.latestVersion} pronta!`;
-          } else {
-            checkUpdateBtnEl.textContent = `✓ Già alla v${manifestVersion}`;
-            setTimeout(() => {
-              checkUpdateBtnEl.textContent = '🔄 Controlla aggiornamenti';
-            }, 3000);
-          }
-        });
-      });
-    }
+  if (checkUpdateBtnEl) {
+    checkUpdateBtnEl.addEventListener('click', async () => {
+      checkUpdateBtnEl.textContent = '⏳ Controllo...';
+      await checkUpdatesDirectly(true);
+    });
   }
 });

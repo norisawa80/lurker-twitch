@@ -121,6 +121,18 @@ chrome.runtime.onInstalled.addListener((details) => {
   const currentVer = chrome.runtime.getManifest().version;
   console.log(`[Twitch Lurker Pro v${currentVer}] Estensione installata/aggiornata:`, details.reason);
 
+  if (details.reason === 'update') {
+    try {
+      chrome.tabs.query({ url: '*://*.twitch.tv/*' }, (tabs) => {
+        if (tabs && tabs.length > 0) {
+          for (const tab of tabs) {
+            if (tab.id) chrome.tabs.reload(tab.id);
+          }
+        }
+      });
+    } catch (e) {}
+  }
+
   chrome.storage.local.get(
     ['enabled', 'humanDelay', 'keepAlive', 'showBadge', 'soundNotification', 'totalClaims', 'totalPoints', 'history'],
     (data) => {
