@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const manifestVersion = (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getManifest)
     ? chrome.runtime.getManifest().version
-    : '1.0.15';
+    : '1.0.16';
 
   if (currentVersionTagEl) {
     currentVersionTagEl.textContent = 'v' + manifestVersion;
