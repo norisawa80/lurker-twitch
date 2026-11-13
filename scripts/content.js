@@ -2,7 +2,20 @@
 (function () {
   'use strict';
 
-  console.log('[Twitch Lurker Pro] Script avviato con Scudo Anti-Unraid.');
+  const RAID_COOLDOWN_MS = 100 * 1000; // Blocco di sicurezza di 100 secondi quando viene rilevato un Raid
+  let raidPauseUntil = 0;
+  let wasRaidDomActive = false;
+
+  console.log('[Twitch Lurker Pro] Script avviato con Scudo Anti-Unraid (Blocco 100s).');
+
+  function activateRaidLock(reason) {
+    const now = Date.now();
+    if (now >= raidPauseUntil) {
+      console.log(`[Twitch Lurker Pro] 🛡️ Raid rilevato (${reason})! Estensione bloccata per 100 secondi.`);
+    }
+    raidPauseUntil = Math.max(raidPauseUntil, now + RAID_COOLDOWN_MS);
+    renderBadgeContent();
+  }
 
   // SCUDO GLOBALE ANTI-UNRAID: blocca alla radice qualsiasi clic automatico (!e.isTrusted)
   // se non è ESATTAMENTE sull'icona .claimable-bonus__icon dentro .community-points-summary!
@@ -60,21 +73,27 @@
     const badge = document.getElementById('tlp-badge-v2');
     if (!badge) return;
 
+    const remainingRaidSec = Math.max(0, Math.ceil((raidPauseUntil - Date.now()) / 1000));
+    const raidHtml = remainingRaidSec > 0
+      ? `<span style="margin-left:6px; background:#f59e0b; color:#18181b; font-weight:800; font-size:10px; padding:1px 6px; border-radius:999px;" title="Blocco di sicurezza anti-raid attivo">🛡️ Pausa Raid ${remainingRaidSec}s</span>`
+      : '';
+
     const updateHtml = latestUpdate
       ? `<a href="${latestUpdate.url}" target="_blank" id="tlp-update-link" title="Nuova versione v${latestUpdate.version} disponibile! Clicca per scaricare" style="margin-left:6px; background:#10b981; color:#042718; font-weight:800; font-size:10px; padding:1px 6px; border-radius:999px; text-decoration:none;">⬆️ v${latestUpdate.version}</a>`
       : '';
 
     const extVer = (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getManifest)
       ? chrome.runtime.getManifest().version
-      : '1.0.12';
+      : '1.0.13';
 
     if (isCollapsed) {
-      badge.innerHTML = `<span title="Twitch Lurker Pro v${extVer} - Clicca per mostrare (Alt+B)" style="cursor:pointer; font-size:13px;">💎</span>${updateHtml}`;
+      badge.innerHTML = `<span title="Twitch Lurker Pro v${extVer} - Clicca per mostrare (Alt+B)" style="cursor:pointer; font-size:13px;">💎</span>${raidHtml}${updateHtml}`;
       badge.style.padding = '4px 7px';
-      badge.style.opacity = latestUpdate ? '0.95' : '0.55';
+      badge.style.opacity = (latestUpdate || remainingRaidSec > 0) ? '0.95' : '0.55';
     } else {
       badge.innerHTML = `
         <span>💎 Lurker Pro <small style="opacity:0.65; font-size:9.5px;">v${extVer}</small>: <strong id="tlp-count">${currentPoints}</strong> pts</span>
+        ${raidHtml}
         ${updateHtml}
         <span id="tlp-close-btn" title="Nascondi badge (Alt+B)" style="margin-left:7px; cursor:pointer; opacity:0.65; font-size:10px; padding:1px 3px;">✕</span>
       `;
@@ -164,7 +183,10 @@
         }
       });
 
-      document.addEventListener('input', positionBadge, { passive: true });
+      document.addEventListener('input', () => {
+        positionBadge();
+        checkChatInputForRaid();
+      }, { passive: true });
       window.addEventListener('resize', positionBadge, { passive: true });
     } catch (e) {}
   }
@@ -210,25 +232,51 @@
     });
   }
 
-  function isRaidActive() {
+  function checkChatInputForRaid() {
     try {
-      if (document.querySelector('[data-test-selector*="raid" i], [data-a-target*="raid" i], [class*="raid" i], [aria-label*="raid" i]')) {
-        return true;
-      }
-      const chatRoom = document.querySelector('.chat-room__content, [data-a-target="chat-scroller"], .stream-chat');
-      if (chatRoom) {
-        const banners = chatRoom.querySelectorAll('[role="region"], [role="alert"], [role="status"], .chat-room__notifications > *');
-        for (const b of banners) {
-          const txt = (b.textContent || '').toLowerCase();
-          if (txt.includes('raid') || txt.includes('unraid')) return true;
-        }
-      }
       const inputBox = document.querySelector('[data-a-target="chat-input"]');
       if (inputBox && inputBox.textContent && inputBox.textContent.trim().toLowerCase().startsWith('/raid')) {
+        activateRaidLock('comando /raid');
         return true;
       }
     } catch (e) {}
     return false;
+  }
+
+  function detectRaidInDom() {
+    try {
+      if (checkChatInputForRaid()) return true;
+
+      if (document.querySelector('[data-test-selector*="raid" i], [data-a-target*="raid" i], [class*="raid" i], [aria-label*="raid" i]')) {
+        return true;
+      }
+
+      const chatRoom = document.querySelector('.stream-chat, .chat-room, .chat-room__content, .channel-root__right-column');
+      if (chatRoom) {
+        const banners = chatRoom.querySelectorAll('[role="region"], [role="alert"], [role="status"], .chat-room__notifications > *, button');
+        for (const b of banners) {
+          const txt = ((b.textContent || '') + ' ' + (b.getAttribute('aria-label') || '')).toLowerCase();
+          if (txt.includes('raid') || txt.includes('unraid') || txt.includes('avvia ora') || txt.includes('raid now')) {
+            return true;
+          }
+        }
+      }
+    } catch (e) {}
+    return false;
+  }
+
+  // Verifica se c'è un raid in corso o se siamo dentro il blocco di sicurezza di 100 secondi
+  function isRaidActive() {
+    const domActive = detectRaidInDom();
+    if (domActive) {
+      if (!wasRaidDomActive || Date.now() >= raidPauseUntil) {
+        activateRaidLock('banner raid');
+      }
+      wasRaidDomActive = true;
+      return true;
+    }
+    wasRaidDomActive = false;
+    return Date.now() < raidPauseUntil;
   }
 
   // Trova ESCLUSIVAMENTE l'icona .claimable-bonus__icon dentro .community-points-summary in fondo alla chat
@@ -244,9 +292,9 @@
       const candidate = bonusIcon.closest('button') || bonusIcon.closest('[role="button"]');
       if (!candidate) return null;
 
-      // Escludi qualsiasi bottone che contenga testo di Raid / Annulla / Abbandona
+      // Escludi qualsiasi bottone che contenga testo di Raid / Annulla / Avvia ora / Abbandona
       const btnText = ((candidate.textContent || '') + ' ' + (candidate.getAttribute('aria-label') || '')).toLowerCase();
-      if (/raid|annulla|cancel|leave|abbandona|esci|unraid/i.test(btnText)) {
+      if (/raid|annulla|cancel|leave|abbandona|esci|unraid|avvia|ora|now|start/i.test(btnText)) {
         return null;
       }
 
@@ -271,7 +319,7 @@
 
   // Simula un clic naturale sul <button>
   function triggerClick(target) {
-    if (!target) return;
+    if (!target || isRaidActive()) return;
     const btn = target.closest('button') || target.closest('[role="button"]') || target;
     try {
       const rect = btn.getBoundingClientRect();
@@ -358,6 +406,9 @@
   }
 
   function checkAndClaim() {
+    if (raidPauseUntil > 0) {
+      renderBadgeContent();
+    }
     if (!config.enabled || isClaiming || isRaidActive()) return;
 
     const btn = findBonusButton();
@@ -367,8 +418,12 @@
       console.log(`[Twitch Lurker Pro] 🎁 Baule rilevato! Riscatto tra ${(delay / 1000).toFixed(1)}s...`);
 
       setTimeout(() => {
+        if (isRaidActive()) {
+          isClaiming = false;
+          return;
+        }
         const targetBtn = findBonusButton();
-        if (targetBtn) {
+        if (targetBtn && !isRaidActive()) {
           triggerClick(targetBtn);
           recordClaim();
         }
