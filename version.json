@@ -1,6 +1,6 @@
 {
-  "version": "1.0.17",
-  "changelog": "Risolto tasto Aggiorna nel popup: esegue chrome.runtime.reload() direttamente dal popup senza dipendere dal vecchio Service Worker in RAM.",
+  "version": "1.0.18",
+  "changelog": "Versione v1.0.18: verifica aggiornamento istantaneo con 1 clic dal popup senza riavviare il browser.",
   "downloadUrl": "https://github.com/norisawa80/lurker-twitch/archive/refs/heads/main.zip",
   "userscriptUrl": "https://raw.githubusercontent.com/norisawa80/lurker-twitch/main/twitch-lurker-points.user.js"
 }

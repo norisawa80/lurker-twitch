@@ -1,7 +1,7 @@
 // Twitch Lurker Pro - Popup Logic
 
 document.addEventListener('DOMContentLoaded', () => {
-  const DISK_VERSION = '1.0.17';
+  const DISK_VERSION = '1.0.18';
   const VERSION_CHECK_URL = 'https://raw.githubusercontent.com/norisawa80/lurker-twitch/main/version.json';
 
   // Elementi UI

@@ -113,7 +113,7 @@
 
     const extVer = (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getManifest)
       ? chrome.runtime.getManifest().version
-      : '1.0.17';
+      : '1.0.18';
 
     if (isCollapsed) {
       badge.innerHTML = `<span title="Twitch Lurker Pro v${extVer} - Clicca per mostrare (Alt+B)" style="cursor:pointer; font-size:13px;">💎</span>${raidHtml}${updateHtml}`;
