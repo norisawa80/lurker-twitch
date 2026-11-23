@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Twitch Lurker Pro - Auto Channel Points & Keep-Alive
 // @namespace    https://github.com/norisawa80/lurker-twitch
-// @version      1.0.19
+// @version      1.0.20
 // @description  Riscatta automaticamente i punti canale bonus di Twitch con ritardo umano e tiene attiva la sessione per i lurker.
 // @author       Twitch Lurker Pro
 // @match        https://www.twitch.tv/*
@@ -14,7 +14,7 @@
 (function () {
   'use strict';
 
-  const CURRENT_VERSION = '1.0.19';
+  const CURRENT_VERSION = '1.0.20';
   const VERSION_CHECK_URL = 'https://raw.githubusercontent.com/norisawa80/lurker-twitch/main/version.json';
   const RAID_COOLDOWN_MS = 100 * 1000; // Blocco di sicurezza di 100 secondi quando viene rilevato un Raid
   const RAID_COMMAND_GRACE_MS = 8000;  // Tolleranza tra invio comando /raid e comparsa del banner
@@ -25,7 +25,7 @@
   let bannerMissingChecks = 0;
   let lastPath = window.location.pathname;
 
-  console.log(`%c[Twitch Lurker Pro v${CURRENT_VERSION}]%c Avviato (Selettori Punti 2026 + Scudo Anti-Raid Intelligente)!`, 'background: #9146ff; color: #fff; font-weight: bold; padding: 2px 6px; border-radius: 4px;', 'color: #9146ff;');
+  console.log(`%c[Twitch Lurker Pro v${CURRENT_VERSION}]%c Avviato (Selettori Punti 2026 + Scudo Anti-Raid Blindato)!`, 'background: #9146ff; color: #fff; font-weight: bold; padding: 2px 6px; border-radius: 4px;', 'color: #9146ff;');
 
   function activateRaidLock(reason, resetFullTimer = false) {
     const now = Date.now();
@@ -51,7 +51,23 @@
   }
 
   function isRaidActionButtonText(text) {
-    return /\b(raid|unraid|annulla|cancel|leave|abbandona|avvia ora|raid now)\b/i.test(text || '');
+    return /\b(raid|unraid|annulla|cancel|leave|abbandona|esci|avvia)\b/i.test(text || '');
+  }
+
+  // Verifica se un elemento si trova nella zona bassa sotto la lista dei messaggi della chat
+  function isElementBelowChatMessages(el) {
+    if (!el) return false;
+    const rect = el.getBoundingClientRect();
+    if (rect.height === 0 || rect.top < window.innerHeight * 0.60) return false;
+
+    const scroller = document.querySelector('[data-a-target="chat-scroller"], .chat-scrollable-area__message-container, [role="log"]');
+    if (scroller) {
+      const scrollerRect = scroller.getBoundingClientRect();
+      if (scrollerRect.height > 0 && rect.top < scrollerRect.bottom - 45) {
+        return false;
+      }
+    }
+    return true;
   }
 
   // SCUDO GLOBALE ANTI-UNRAID + RILEVAMENTO CLIC UMANO SU "ANNULLA RAID"
@@ -60,18 +76,21 @@
       try {
         const target = e.target && e.target.closest ? e.target.closest('button, [role="button"]') : null;
 
-        // 1. Se è un clic automatico (!e.isTrusted), bloccalo SOLO se è nella parte alta dello schermo (zona banner Raid)
-        // oppure se contiene testo di Raid/Annulla o se c'è un Raid attivo.
+        // 1. Se è un clic automatico (!e.isTrusted), bloccalo SEMPRE se:
+        //    - Non è sotto l'area dei messaggi della chat (!isElementBelowChatMessages)
+        //    - Oppure ha testo visibile di azione (es. "Annulla", "Avvia ora", "Cancel", "Raid")
+        //    - Oppure c'è un Raid attivo
         if (!e.isTrusted && target) {
-          const rect = target.getBoundingClientRect();
-          const btnText = ((target.textContent || '') + ' ' + (target.getAttribute('aria-label') || '')).toLowerCase();
-          const isInTopHalf = rect.top > 0 && rect.top < window.innerHeight * 0.45;
+          const visibleText = (target.textContent || '').trim();
+          const fullText = (visibleText + ' ' + (target.getAttribute('aria-label') || '')).toLowerCase();
+          // Il bauletto punti ha testo visibile vuoto "" oppure "+50" (mai parole come "Annulla" o "Avvia ora")
+          const hasSuspiciousVisibleWords = /[a-zA-Z]{3,}/.test(visibleText);
 
-          if (isInTopHalf || isRaidActionButtonText(btnText) || isRaidActive()) {
+          if (!isElementBelowChatMessages(target) || hasSuspiciousVisibleWords || isRaidActionButtonText(fullText) || isRaidActive()) {
             e.stopImmediatePropagation();
             e.stopPropagation();
             e.preventDefault();
-            console.warn('[Twitch Lurker Pro] 🛡️ Bloccato clic automatico nella zona Raid:', target);
+            console.warn('[Twitch Lurker Pro] 🛡️ Bloccato clic automatico fuori dal baule punti:', target);
           }
           return;
         }
@@ -259,32 +278,41 @@
     return false;
   }
 
-  // Rileva ESCLUSIVAMENTE il vero banner di Raid nella fascia alta della chat (ignorando messaggi chat, emote o titoli stream)
+  // Rileva il banner di Raid nella fascia alta della chat (escludendo i messaggi scritti dagli utenti in chat)
   function detectRaidBannerInDom() {
     try {
+      const isInsideChatMessages = (el) =>
+        el.closest('[data-a-target="chat-scroller"], .chat-scrollable-area__message-container, [role="log"]') ||
+        el.querySelector('[data-a-target="chat-scroller"], .chat-scrollable-area__message-container, [role="log"]');
+
       // 1. Selettori specifici del banner raid nella parte alta dello schermo
-      const specificRaidEls = document.querySelectorAll('[data-test-selector*="raid-banner" i], [data-test-selector*="raid" i], [class*="raid-banner" i]');
+      const specificRaidEls = document.querySelectorAll('[data-test-selector*="raid" i], [data-a-target*="raid" i], [class*="raid-banner" i]');
       for (const el of specificRaidEls) {
-        if (el.closest('[data-a-target="chat-scroller"], .chat-scrollable-area__message-container, [role="log"]')) continue;
+        if (isInsideChatMessages(el)) continue;
         const rect = el.getBoundingClientRect();
-        if (rect.height > 15 && rect.top >= 0 && rect.top < 280) {
+        if (rect.height > 15 && rect.top >= 0 && rect.top < 320) {
           return true;
         }
       }
 
-      // 2. Controlla i bottoni presenti SOLO nella fascia alta della colonna chat (top < 280px, fuori dai messaggi)
+      // 2. Controlla i bottoni o banner presenti nella fascia alta della colonna chat (top < 320px, fuori dai messaggi)
       const chatRoom = document.querySelector('.stream-chat, .chat-room, .channel-root__right-column');
       if (chatRoom) {
+        // Controlla bottoni nella parte alta della chat ("Annulla", "Cancel", "Avvia ora", "Raid Now", "Abbandona", "Leave")
         const buttons = chatRoom.querySelectorAll('button, [role="button"]');
         for (const btn of buttons) {
           if (btn.id === 'tlp-badge-v2' || btn.closest('#tlp-badge-v2')) continue;
-          if (btn.closest('[data-a-target="chat-scroller"], .chat-scrollable-area__message-container, [role="log"]')) continue;
+          if (isInsideChatMessages(btn)) continue;
 
           const rect = btn.getBoundingClientRect();
-          if (rect.height === 0 || rect.top < 0 || rect.top > 280) continue;
+          if (rect.height === 0 || rect.top < 0 || rect.top > 320) continue;
 
-          const txt = ((btn.textContent || '') + ' ' + (btn.getAttribute('aria-label') || '')).trim().toLowerCase();
-          if (/\b(avvia ora|raid now|annulla raid|cancel raid|abbandona il raid|leave raid|unraid)\b/i.test(txt)) {
+          const visibleTxt = (btn.textContent || '').trim().toLowerCase();
+          const fullTxt = (visibleTxt + ' ' + (btn.getAttribute('aria-label') || '')).toLowerCase();
+
+          // Se nella fascia alta della chat compare un bottone con testo visibile "Annulla", "Cancel", "Avvia ora", "Raid Now", "Abbandona"
+          if (/^(annulla|cancel|avvia ora|raid now|abbandona|leave)$/i.test(visibleTxt) ||
+              /\b(avvia ora|raid now|annulla raid|cancel raid|abbandona il raid|leave raid|unraid)\b/i.test(fullTxt)) {
             return true;
           }
         }
@@ -331,12 +359,12 @@
     return Date.now() < raidPauseUntil;
   }
 
-  // Trova il pulsante del baule bonus in fondo alla chat supportando tutti i selettori Twitch (vecchi e nuovi 2026)
+  // Trova ESCLUSIVAMENTE il bauletto punti in fondo alla chat (scartando qualsiasi elemento sopra i messaggi o con parole nel bottone)
   function findBonusButton() {
     try {
-      let candidate = null;
+      const candidates = [];
 
-      // 1. Ricerca diretta tramite tutti i selettori ufficiali Twitch per il baule bonus
+      // 1. Raccogli tutti i possibili candidati con querySelectorAll (così se ce n'è uno nel banner Raid in alto lo scarta e prende quello in basso!)
       const directSelectors = [
         '.claimable-bonus__icon',
         'button[aria-label*="Claim Bonus" i]',
@@ -350,39 +378,41 @@
       ];
 
       for (const sel of directSelectors) {
-        const el = document.querySelector(sel);
-        if (el) {
-          candidate = el.closest('button') || el.closest('[role="button"]') || el;
-          if (candidate) break;
-        }
-      }
-
-      // 2. Fallback: se il contenitore .community-points-summary ha 2 bottoni (1° = saldo punti, 2° = baule bonus)
-      if (!candidate) {
-        const summary = document.querySelector('[data-test-selector="community-points-summary"], .community-points-summary');
-        if (summary) {
-          const buttons = summary.querySelectorAll('button');
-          if (buttons.length > 1) {
-            candidate = buttons[buttons.length - 1];
+        const els = document.querySelectorAll(sel);
+        for (const el of els) {
+          const btn = el.closest('button') || el.closest('[role="button"]');
+          if (btn && !candidates.includes(btn)) {
+            candidates.push(btn);
           }
         }
       }
 
-      if (!candidate) return null;
-
-      // Verifica 1: Escludi qualsiasi bottone che abbia testo di Raid / Annulla / Avvia ora
-      const btnText = ((candidate.textContent || '') + ' ' + (candidate.getAttribute('aria-label') || '')).toLowerCase();
-      if (isRaidActionButtonText(btnText)) {
-        return null;
+      // 2. Fallback: secondo bottone dentro .community-points-summary
+      const summary = document.querySelector('[data-test-selector="community-points-summary"], .community-points-summary');
+      if (summary) {
+        const buttons = summary.querySelectorAll('button');
+        if (buttons.length > 1) {
+          const lastBtn = buttons[buttons.length - 1];
+          if (!candidates.includes(lastBtn)) candidates.push(lastBtn);
+        }
       }
 
-      // Verifica 2: Il baule dei punti si trova SEMPRE nella metà inferiore della finestra (mai in alto dove c'è il Raid)
-      const btnRect = candidate.getBoundingClientRect();
-      if (btnRect.height === 0 || btnRect.top < window.innerHeight * 0.45) {
-        return null;
-      }
+      // 3. Filtra rigorosamente ogni candidato
+      for (const candidate of candidates) {
+        // A. Il bauletto punti non ha MAI parole visibili nel bottone (solo icona SVG o "+50"),
+        // mentre i bottoni del Raid hanno scritto "Annulla", "Avvia ora", "Cancel", "Raid Now", "Abbandona"
+        const visibleText = (candidate.textContent || '').trim();
+        if (/[a-zA-Z]{3,}/.test(visibleText)) continue;
 
-      return candidate;
+        // B. Nessun attributo aria-label deve contenere parole di Raid / Annulla / Avvia
+        const fullText = (visibleText + ' ' + (candidate.getAttribute('aria-label') || '')).toLowerCase();
+        if (isRaidActionButtonText(fullText)) continue;
+
+        // C. Deve trovarsi matematicamente in fondo alla chat, SOTTO la lista dei messaggi!
+        if (!isElementBelowChatMessages(candidate)) continue;
+
+        return candidate;
+      }
     } catch (e) {}
 
     return null;

@@ -1,6 +1,6 @@
 {
-  "version": "1.0.19",
-  "changelog": "Ripristinato accumulo punti canale: rimossi falsi positivi della pausa Raid sui messaggi in chat e riattivati tutti i selettori Twitch per il bauletto bonus.",
+  "version": "1.0.20",
+  "changelog": "Protezione Anti-Raid Blindata v1.0.20: il bauletto punti viene cliccato solo se privo di parole visibili e posizionato sotto la lista messaggi della chat.",
   "downloadUrl": "https://github.com/norisawa80/lurker-twitch/archive/refs/heads/main.zip",
   "userscriptUrl": "https://raw.githubusercontent.com/norisawa80/lurker-twitch/main/twitch-lurker-points.user.js"
 }
