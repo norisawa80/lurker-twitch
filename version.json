@@ -1,6 +1,6 @@
 {
-  "version": "1.0.18",
-  "changelog": "Versione v1.0.18: verifica aggiornamento istantaneo con 1 clic dal popup senza riavviare il browser.",
+  "version": "1.0.19",
+  "changelog": "Ripristinato accumulo punti canale: rimossi falsi positivi della pausa Raid sui messaggi in chat e riattivati tutti i selettori Twitch per il bauletto bonus.",
   "downloadUrl": "https://github.com/norisawa80/lurker-twitch/archive/refs/heads/main.zip",
   "userscriptUrl": "https://raw.githubusercontent.com/norisawa80/lurker-twitch/main/twitch-lurker-points.user.js"
 }
