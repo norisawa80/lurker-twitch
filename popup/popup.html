@@ -21,7 +21,7 @@
         </div>
         <div>
           <h1 class="brand-title">Lurker Pro</h1>
-          <p class="brand-subtitle">Channel Points & Keep-Alive</p>
+          <p class="brand-subtitle">Channel Points & Smart Lurk</p>
         </div>
       </div>
       <div class="live-status-pill" id="liveStatus">
@@ -33,10 +33,25 @@
     <!-- Banner Aggiornamento Disponibile -->
     <div class="update-banner" id="updateBanner" style="display: none;">
       <div class="update-banner-top">
-        <span class="update-title">🚀 Nuova versione <strong id="updateVersionText">v1.0.6</strong> disponibile!</span>
+        <span class="update-title">🚀 Nuova versione <strong id="updateVersionText">v1.1.0</strong> disponibile!</span>
         <a href="#" id="updateDownloadBtn" target="_blank" class="update-btn">Aggiorna ora</a>
       </div>
       <div class="update-notes" id="updateNotesText">È disponibile un nuovo aggiornamento di Twitch Lurker Pro.</div>
+    </div>
+
+    <!-- Pulsante Modalità Lurk 1-Click & Contatore Schede -->
+    <div class="lurk-action-box">
+      <button id="lurkModeBtn" class="btn-lurk-mode" title="Silenzia la scheda del browser (lasciando attivo l'audio del player) e imposta la qualità minima 160p">
+        <span class="lurk-btn-icon" id="lurkBtnIcon">🌙</span>
+        <div class="lurk-btn-content">
+          <span class="lurk-btn-title" id="lurkBtnTitle">Attiva Modalità Lurk (1-Click)</span>
+          <span class="lurk-btn-sub" id="lurkBtnSub">Muta scheda browser + qualità 160p salva-banda</span>
+        </div>
+      </button>
+
+      <div class="tabs-counter-bar" id="tabsCounterBar">
+        <span id="tabsCounterText">📺 Live Twitch aperte: <strong>0</strong></span>
+      </div>
     </div>
 
     <!-- Statistiche Principali -->
@@ -74,8 +89,8 @@
     <div class="settings-card">
       <div class="setting-item">
         <div class="setting-text">
-          <span class="setting-title">Auto-Riscatto Punti</span>
-          <span class="setting-desc">Clicca i bauli bonus appena compaiono</span>
+          <span class="setting-title">Auto-Riscatto Punti (+50)</span>
+          <span class="setting-desc">Clicca i bauli bonus con Scudo Anti-Raid attivo</span>
         </div>
         <label class="switch">
           <input type="checkbox" id="toggleEnabled" checked>
@@ -85,22 +100,33 @@
 
       <div class="setting-item">
         <div class="setting-text">
-          <span class="setting-title">Ritardo Umano Anti-Bot</span>
-          <span class="setting-desc">Attende 1.2s - 3.8s prima di cliccare</span>
+          <span class="setting-title">Anti-Freeze Scheda (Memory Saver)</span>
+          <span class="setting-desc">Impedisce al browser di congelare la scheda (autoDiscardable)</span>
         </div>
         <label class="switch">
-          <input type="checkbox" id="toggleHumanDelay" checked>
+          <input type="checkbox" id="toggleKeepAlive" checked>
           <span class="slider"></span>
         </label>
       </div>
 
       <div class="setting-item">
         <div class="setting-text">
-          <span class="setting-title">Keep-Alive Scheda</span>
-          <span class="setting-desc">Simula micro-attività per non far ibernare il lurk</span>
+          <span class="setting-title">Auto-Ripristino Player (#2000/#3000)</span>
+          <span class="setting-desc">Ricarica lo stream se il player Twitch va in crash</span>
         </div>
         <label class="switch">
-          <input type="checkbox" id="toggleKeepAlive" checked>
+          <input type="checkbox" id="toggleAutoRecover" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="setting-item">
+        <div class="setting-text">
+          <span class="setting-title">Ritardo Umano Naturale</span>
+          <span class="setting-desc">Attende 1.2s - 2.5s prima di riscattare il baule</span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="toggleHumanDelay" checked>
           <span class="slider"></span>
         </label>
       </div>
@@ -145,7 +171,7 @@
     <!-- Footer -->
     <footer class="app-footer">
       <div style="display: flex; align-items: center; gap: 8px;">
-        <span class="version-tag" id="currentVersionTag">v1.0.20</span>
+        <span class="version-tag" id="currentVersionTag">v1.1.0</span>
         <button id="checkUpdateBtn" class="btn-check-update" title="Controlla se ci sono nuove versioni">🔄 Controlla aggiornamenti</button>
       </div>
       <span class="lurk-tip">💡 <i>Muta la scheda, non il player!</i></span>

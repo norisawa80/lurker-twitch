@@ -1,13 +1,14 @@
-// Twitch Lurker Pro - Popup Logic
+// Twitch Lurker Pro - Popup Logic (v1.1.0)
 
 document.addEventListener('DOMContentLoaded', () => {
-  const DISK_VERSION = '1.0.20';
+  const DISK_VERSION = '1.1.0';
   const VERSION_CHECK_URL = 'https://raw.githubusercontent.com/norisawa80/lurker-twitch/main/version.json';
 
   // Elementi UI
   const toggleEnabled = document.getElementById('toggleEnabled');
   const toggleHumanDelay = document.getElementById('toggleHumanDelay');
   const toggleKeepAlive = document.getElementById('toggleKeepAlive');
+  const toggleAutoRecover = document.getElementById('toggleAutoRecover');
   const toggleShowBadge = document.getElementById('toggleShowBadge');
   const toggleSound = document.getElementById('toggleSound');
 
@@ -23,6 +24,17 @@ document.addEventListener('DOMContentLoaded', () => {
   const updateNotesTextEl = document.getElementById('updateNotesText');
   const currentVersionTagEl = document.getElementById('currentVersionTag');
   const checkUpdateBtnEl = document.getElementById('checkUpdateBtn');
+
+  // Elementi Modalità Lurk & Contatore Schede
+  const lurkModeBtn = document.getElementById('lurkModeBtn');
+  const lurkBtnIcon = document.getElementById('lurkBtnIcon');
+  const lurkBtnTitle = document.getElementById('lurkBtnTitle');
+  const lurkBtnSub = document.getElementById('lurkBtnSub');
+  const tabsCounterBar = document.getElementById('tabsCounterBar');
+  const tabsCounterText = document.getElementById('tabsCounterText');
+
+  let activeTwitchTabId = null;
+  let isCurrentTabLurking = false;
 
   // Versione realmente caricata nella RAM del browser
   const memoryVersion = (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getManifest)
@@ -46,6 +58,121 @@ document.addEventListener('DOMContentLoaded', () => {
     return false;
   }
 
+  function isTwitchChannelTab(url) {
+    if (!url) return false;
+    try {
+      const u = new URL(url);
+      if (!u.hostname.endsWith('twitch.tv')) return false;
+      const parts = u.pathname.split('/').filter(Boolean);
+      if (parts.length === 0) return false;
+      const nonChannels = ['directory', 'settings', 'videos', 'downloads', 'wallet', 'subscriptions', 'inventory', 'drops', 'search', 'friends', 'messages'];
+      return !nonChannels.includes(parts[0].toLowerCase());
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function renderLurkButtonState(isActive, hasTab) {
+    isCurrentTabLurking = Boolean(isActive);
+    if (!lurkModeBtn) return;
+
+    if (!hasTab) {
+      lurkModeBtn.classList.remove('active');
+      if (lurkBtnIcon) lurkBtnIcon.textContent = '🌙';
+      if (lurkBtnTitle) lurkBtnTitle.textContent = 'Modalità Lurk (Apri una live Twitch)';
+      if (lurkBtnSub) lurkBtnSub.textContent = 'Silenzia la scheda del browser + qualità 160p salva-banda';
+      return;
+    }
+
+    if (isCurrentTabLurking) {
+      lurkModeBtn.classList.add('active');
+      if (lurkBtnIcon) lurkBtnIcon.textContent = '🔊';
+      if (lurkBtnTitle) lurkBtnTitle.textContent = 'Modalità Lurk ATTIVA (Scheda Mutata + 160p)';
+      if (lurkBtnSub) lurkBtnSub.textContent = 'Clicca per riattivare l\'audio della scheda e la qualità normale';
+    } else {
+      lurkModeBtn.classList.remove('active');
+      if (lurkBtnIcon) lurkBtnIcon.textContent = '🌙';
+      if (lurkBtnTitle) lurkBtnTitle.textContent = 'Attiva Modalità Lurk (1-Click)';
+      if (lurkBtnSub) lurkBtnSub.textContent = 'Muta scheda browser (non il player) + qualità 160p salva-banda';
+    }
+  }
+
+  function renderTabsCounter(count) {
+    if (!tabsCounterBar || !tabsCounterText) return;
+    if (count > 2) {
+      tabsCounterBar.classList.add('warning');
+      tabsCounterText.innerHTML = `⚠️ Hai <strong>${count} live Twitch</strong> aperte! Twitch conteggia il lurk su massimo <strong>2 stream</strong> contemporanei: chiudi le schede extra per risparmiare RAM e banda.`;
+    } else if (count > 0) {
+      tabsCounterBar.classList.remove('warning');
+      tabsCounterText.innerHTML = `📺 Live Twitch aperte: <strong>${count}/2</strong> (Ottimale per il lurk e Memory Saver disattivato)`;
+    } else {
+      tabsCounterBar.classList.remove('warning');
+      tabsCounterText.innerHTML = `📺 Nessuna live Twitch aperta al momento`;
+    }
+  }
+
+  // Controlla le schede Twitch aperte e lo stato della scheda attiva
+  function inspectTwitchTabs() {
+    if (typeof chrome === 'undefined' || !chrome.tabs || !chrome.tabs.query) return;
+
+    chrome.tabs.query({ url: '*://*.twitch.tv/*' }, (tabs) => {
+      if (!tabs) return;
+      const channelTabs = tabs.filter(t => isTwitchChannelTab(t.url));
+      renderTabsCounter(channelTabs.length);
+
+      // Trova la scheda Twitch attiva nella finestra corrente (o la prima scheda canale Twitch aperta)
+      const activeTab = channelTabs.find(t => t.active) || channelTabs[0] || tabs[0];
+      if (!activeTab || !activeTab.id) {
+        activeTwitchTabId = null;
+        renderLurkButtonState(false, false);
+        return;
+      }
+
+      activeTwitchTabId = activeTab.id;
+      const tabMuted = Boolean(activeTab.mutedInfo && activeTab.mutedInfo.muted);
+
+      // Assicura autoDiscardable: false sulla scheda attiva se keepAlive è attivo
+      if (toggleKeepAlive && toggleKeepAlive.checked) {
+        chrome.tabs.update(activeTab.id, { autoDiscardable: false }, () => {
+          void chrome.runtime.lastError;
+        });
+      }
+
+      chrome.tabs.sendMessage(activeTab.id, { type: 'GET_TAB_LURK_STATE' }, (res) => {
+        void chrome.runtime.lastError;
+        const lurkOn = (res && res.lurkMode) || tabMuted;
+        renderLurkButtonState(lurkOn, true);
+      });
+    });
+  }
+
+  if (lurkModeBtn) {
+    lurkModeBtn.addEventListener('click', () => {
+      if (!activeTwitchTabId) {
+        inspectTwitchTabs();
+        return;
+      }
+      const nextState = !isCurrentTabLurking;
+      renderLurkButtonState(nextState, true);
+
+      // Muta/smuta la scheda del browser tramite API nativa e imposta 160p nel player
+      if (typeof chrome !== 'undefined' && chrome.tabs && chrome.tabs.update) {
+        chrome.tabs.update(activeTwitchTabId, {
+          muted: nextState,
+          autoDiscardable: false
+        }, () => {
+          void chrome.runtime.lastError;
+          chrome.tabs.sendMessage(activeTwitchTabId, {
+            type: 'SET_LURK_QUALITY',
+            enable: nextState
+          }, () => {
+            void chrome.runtime.lastError;
+          });
+        });
+      }
+    });
+  }
+
   async function getDiskManifestVersion() {
     try {
       const res = await fetch(chrome.runtime.getURL('manifest.json') + '?t=' + Date.now(), { cache: 'no-store' });
@@ -57,7 +184,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Ricarica direttamente dall'interno del popup le schede Twitch e l'estensione (senza dipendere dal vecchio Service Worker in RAM)
+  // Ricarica direttamente dall'interno del popup le schede Twitch e l'estensione
   function applyReloadNow(targetVer) {
     if (updateDownloadBtnEl) updateDownloadBtnEl.textContent = `✅ Aggiornato a v${targetVer}!`;
     if (checkUpdateBtnEl) checkUpdateBtnEl.textContent = `✅ Aggiornato a v${targetVer}! Ricarico...`;
@@ -180,6 +307,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (data.keepAlive !== undefined) {
       toggleKeepAlive.checked = data.keepAlive;
     }
+    if (data.autoRecover !== undefined && toggleAutoRecover) {
+      toggleAutoRecover.checked = data.autoRecover;
+    }
     if (data.showBadge !== undefined && toggleShowBadge) {
       toggleShowBadge.checked = data.showBadge;
     }
@@ -189,8 +319,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (data.history !== undefined) {
       renderHistory(data.history);
     }
+    if (typeof data.openTwitchTabsCount === 'number') {
+      renderTabsCounter(data.openTwitchTabsCount);
+    }
 
-    // Mostra sempre la versione reale caricata nella RAM del browser
     if (currentVersionTagEl) {
       currentVersionTagEl.textContent = 'v' + memoryVersion;
     }
@@ -212,6 +344,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
     chrome.storage.local.get(null, (data) => {
       updateUI(data);
+      inspectTwitchTabs();
     });
 
     chrome.storage.onChanged.addListener((changes, area) => {
@@ -227,9 +360,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Gestione toggle impostazioni
   function bindToggle(element, key) {
+    if (!element) return;
     element.addEventListener('change', (e) => {
       if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
         chrome.storage.local.set({ [key]: e.target.checked });
+      }
+      if (key === 'keepAlive' && typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
+        chrome.runtime.sendMessage({ type: 'SYNC_TABS' }, () => {
+          void chrome.runtime.lastError;
+        });
       }
     });
   }
@@ -237,7 +376,8 @@ document.addEventListener('DOMContentLoaded', () => {
   bindToggle(toggleEnabled, 'enabled');
   bindToggle(toggleHumanDelay, 'humanDelay');
   bindToggle(toggleKeepAlive, 'keepAlive');
-  if (toggleShowBadge) bindToggle(toggleShowBadge, 'showBadge');
+  bindToggle(toggleAutoRecover, 'autoRecover');
+  bindToggle(toggleShowBadge, 'showBadge');
   bindToggle(toggleSound, 'soundNotification');
 
   // Pulsante Reset Statistiche
@@ -253,7 +393,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // All'apertura del popup controlla subito se c'è una versione pronta su disco o su GitHub
+  // All'apertura del popup controlla subito schede e aggiornamenti
+  inspectTwitchTabs();
   checkUpdatesDirectly(false);
 
   if (updateDownloadBtnEl) {

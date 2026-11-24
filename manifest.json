@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Twitch Lurker Pro - Auto Points & Keep-Alive",
-  "version": "1.0.20",
-  "description": "Riscatta automaticamente i punti canale bonus di Twitch e simula attività naturale per prevenire l'esclusione del lurk.",
+  "version": "1.1.0",
+  "description": "Riscatta automaticamente i punti canale bonus di Twitch, protegge la scheda dal Memory Saver (autoDiscardable), offre la Modalità Lurk 1-click e ripristina il player dagli errori #2000/#3000/#4000.",
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
@@ -18,7 +18,8 @@
     "default_title": "Twitch Lurker Pro"
   },
   "permissions": [
-    "storage"
+    "storage",
+    "tabs"
   ],
   "browser_specific_settings": {
     "gecko": {

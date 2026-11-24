@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Twitch Lurker Pro - Auto Channel Points & Keep-Alive
 // @namespace    https://github.com/norisawa80/lurker-twitch
-// @version      1.0.20
-// @description  Riscatta automaticamente i punti canale bonus di Twitch con ritardo umano e tiene attiva la sessione per i lurker.
+// @version      1.1.0
+// @description  Riscatta automaticamente i punti canale bonus di Twitch, ripristina il player in caso di errore (#2000/#3000/#4000) e include la Modalità Lurk 160p.
 // @author       Twitch Lurker Pro
 // @match        https://www.twitch.tv/*
 // @updateURL    https://raw.githubusercontent.com/norisawa80/lurker-twitch/main/twitch-lurker-points.user.js
@@ -14,18 +14,21 @@
 (function () {
   'use strict';
 
-  const CURRENT_VERSION = '1.0.20';
+  const CURRENT_VERSION = '1.1.0';
   const VERSION_CHECK_URL = 'https://raw.githubusercontent.com/norisawa80/lurker-twitch/main/version.json';
   const RAID_COOLDOWN_MS = 100 * 1000; // Blocco di sicurezza di 100 secondi quando viene rilevato un Raid
   const RAID_COMMAND_GRACE_MS = 8000;  // Tolleranza tra invio comando /raid e comparsa del banner
+  const PLAYER_RELOAD_COOLDOWN_MS = 35 * 1000; // Cooldown minimo tra due reload per errore #2000/#3000/#4000
 
   let raidPauseUntil = 0;
   let lastRaidCommandAt = 0;
   let wasRaidBannerVisible = false;
   let bannerMissingChecks = 0;
   let lastPath = window.location.pathname;
+  let errorFirstSeenAt = 0;
+  let isLurkModeActive = localStorage.getItem('tlp_lurk_mode_active') === '1';
 
-  console.log(`%c[Twitch Lurker Pro v${CURRENT_VERSION}]%c Avviato (Selettori Punti 2026 + Scudo Anti-Raid Blindato)!`, 'background: #9146ff; color: #fff; font-weight: bold; padding: 2px 6px; border-radius: 4px;', 'color: #9146ff;');
+  console.log(`%c[Twitch Lurker Pro v${CURRENT_VERSION}]%c Avviato (Auto-Points + Scudo Anti-Raid + Auto-Recovery #2000/#3000/#4000 + Lurk 160p)!`, 'background: #9146ff; color: #fff; font-weight: bold; padding: 2px 6px; border-radius: 4px;', 'color: #9146ff;');
 
   function activateRaidLock(reason, resetFullTimer = false) {
     const now = Date.now();
@@ -54,6 +57,15 @@
     return /\b(raid|unraid|annulla|cancel|leave|abbandona|esci|avvia)\b/i.test(text || '');
   }
 
+  // Verifica se un elemento è il bottone di ripristino errore dentro il player video (mai nella chat)
+  function isPlayerErrorRetryButton(el) {
+    if (!el) return false;
+    if (el.closest('.stream-chat, .chat-room, .channel-root__right-column')) return false;
+    const gate = el.closest('[data-a-target="player-overlay-content-gate"], .content-overlay-gate');
+    const inPlayer = el.closest('.video-player, [data-a-target="video-player"], .persistent-player');
+    return Boolean(gate && inPlayer);
+  }
+
   // Verifica se un elemento si trova nella zona bassa sotto la lista dei messaggi della chat
   function isElementBelowChatMessages(el) {
     if (!el) return false;
@@ -76,14 +88,16 @@
       try {
         const target = e.target && e.target.closest ? e.target.closest('button, [role="button"]') : null;
 
-        // 1. Se è un clic automatico (!e.isTrusted), bloccalo SEMPRE se:
-        //    - Non è sotto l'area dei messaggi della chat (!isElementBelowChatMessages)
-        //    - Oppure ha testo visibile di azione (es. "Annulla", "Avvia ora", "Cancel", "Raid")
-        //    - Oppure c'è un Raid attivo
+        // 1. Se è un clic automatico (!e.isTrusted), consenti SOLO:
+        //    - il bauletto punti in fondo alla chat (privo di parole e sotto i messaggi)
+        //    - oppure il bottone di ripristino crash dentro il player video (#2000/#3000/#4000)
         if (!e.isTrusted && target) {
+          if (isPlayerErrorRetryButton(target) && !isRaidActive()) {
+            return;
+          }
+
           const visibleText = (target.textContent || '').trim();
           const fullText = (visibleText + ' ' + (target.getAttribute('aria-label') || '')).toLowerCase();
-          // Il bauletto punti ha testo visibile vuoto "" oppure "+50" (mai parole come "Annulla" o "Avvia ora")
           const hasSuspiciousVisibleWords = /[a-zA-Z]{3,}/.test(visibleText);
 
           if (!isElementBelowChatMessages(target) || hasSuspiciousVisibleWords || isRaidActionButtonText(fullText) || isRaidActive()) {
@@ -110,6 +124,33 @@
   let isCollapsed = localStorage.getItem('tlp_badge_collapsed') === '1';
   let isClaiming = false;
   let latestUpdate = null; // { version, url }
+
+  function toggleLurkQuality(enable) {
+    try {
+      isLurkModeActive = Boolean(enable);
+      localStorage.setItem('tlp_lurk_mode_active', isLurkModeActive ? '1' : '0');
+
+      if (isLurkModeActive) {
+        const currentQ = localStorage.getItem('video-quality');
+        if (currentQ && !currentQ.includes('160p')) {
+          localStorage.setItem('tlp_prev_video_quality', currentQ);
+        }
+        localStorage.setItem('video-quality', '{"default":"160p30"}');
+        const video = document.querySelector('video');
+        if (video) {
+          video.muted = false;
+          if (video.volume < 0.05) video.volume = 0.5;
+          if (video.paused) video.play().catch(() => {});
+        }
+        console.log('[Twitch Lurker Pro] 🌙 Modalità Lurk 160p attivata (Muta la scheda del browser con tasto destro -> Disattiva audio scheda).');
+      } else {
+        const prevQ = localStorage.getItem('tlp_prev_video_quality') || '{"default":"chunked"}';
+        localStorage.setItem('video-quality', prevQ);
+        console.log('[Twitch Lurker Pro] 🔊 Modalità Lurk 160p disattivata.');
+      }
+      renderBadgeContent();
+    } catch (e) {}
+  }
 
   function isNewerVersion(remote, local) {
     if (!remote || !local) return false;
@@ -164,6 +205,8 @@
       ? `<span style="margin-left:6px; background:#f59e0b; color:#18181b; font-weight:800; font-size:10px; padding:1px 6px; border-radius:999px;" title="Blocco di sicurezza anti-raid attivo (si disattiva da solo se il raid viene annullato)">🛡️ Pausa Raid ${remainingRaidSec}s</span>`
       : '';
 
+    const lurkHtml = `<span id="tlp-lurk-pill" style="margin-left:6px; background:${isLurkModeActive ? 'rgba(145,70,255,0.32)' : 'rgba(255,255,255,0.08)'}; border:1px solid ${isLurkModeActive ? '#a855f7' : 'rgba(255,255,255,0.15)'}; color:${isLurkModeActive ? '#e9d5ff' : '#adadb8'}; font-weight:700; font-size:9.5px; padding:1px 6px; border-radius:999px; cursor:pointer;" title="Clicca per attivare/disattivare la Modalità Lurk a bassa banda (160p)">🌙 ${isLurkModeActive ? '160p ON' : 'Lurk'}</span>`;
+
     const updateHtml = latestUpdate
       ? `<a href="${latestUpdate.url}" target="_blank" id="tlp-update-link" title="Nuova versione v${latestUpdate.version} disponibile! Clicca per aggiornare con 1 clic" style="margin-left:6px; background:#10b981; color:#042718; font-weight:800; font-size:10px; padding:1px 6px; border-radius:999px; text-decoration:none;">⬆️ v${latestUpdate.version}</a>`
       : '';
@@ -175,12 +218,21 @@
     } else {
       badge.innerHTML = `
         <span>💎 Lurker Pro <small style="opacity:0.65; font-size:9.5px;">v${CURRENT_VERSION}</small>: <strong id="tlp-count">${claimedCount * 50}</strong> pts</span>
+        ${lurkHtml}
         ${raidHtml}
         ${updateHtml}
         <span id="tlp-close-btn" title="Nascondi badge (oppure premi Alt+B)" style="margin-left:7px; cursor:pointer; opacity:0.65; font-size:10px; padding:1px 3px;">✕</span>
       `;
       badge.style.padding = '4px 10px';
       badge.style.opacity = '0.95';
+    }
+
+    const lurkPill = document.getElementById('tlp-lurk-pill');
+    if (lurkPill) {
+      lurkPill.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        toggleLurkQuality(!isLurkModeActive);
+      });
     }
 
     const updateLink = document.getElementById('tlp-update-link');
@@ -285,7 +337,6 @@
         el.closest('[data-a-target="chat-scroller"], .chat-scrollable-area__message-container, [role="log"]') ||
         el.querySelector('[data-a-target="chat-scroller"], .chat-scrollable-area__message-container, [role="log"]');
 
-      // 1. Selettori specifici del banner raid nella parte alta dello schermo
       const specificRaidEls = document.querySelectorAll('[data-test-selector*="raid" i], [data-a-target*="raid" i], [class*="raid-banner" i]');
       for (const el of specificRaidEls) {
         if (isInsideChatMessages(el)) continue;
@@ -295,10 +346,8 @@
         }
       }
 
-      // 2. Controlla i bottoni o banner presenti nella fascia alta della colonna chat (top < 320px, fuori dai messaggi)
       const chatRoom = document.querySelector('.stream-chat, .chat-room, .channel-root__right-column');
       if (chatRoom) {
-        // Controlla bottoni nella parte alta della chat ("Annulla", "Cancel", "Avvia ora", "Raid Now", "Abbandona", "Leave")
         const buttons = chatRoom.querySelectorAll('button, [role="button"]');
         for (const btn of buttons) {
           if (btn.id === 'tlp-badge-v2' || btn.closest('#tlp-badge-v2')) continue;
@@ -310,7 +359,6 @@
           const visibleTxt = (btn.textContent || '').trim().toLowerCase();
           const fullTxt = (visibleTxt + ' ' + (btn.getAttribute('aria-label') || '')).toLowerCase();
 
-          // Se nella fascia alta della chat compare un bottone con testo visibile "Annulla", "Cancel", "Avvia ora", "Raid Now", "Abbandona"
           if (/^(annulla|cancel|avvia ora|raid now|abbandona|leave)$/i.test(visibleTxt) ||
               /\b(avvia ora|raid now|annulla raid|cancel raid|abbandona il raid|leave raid|unraid)\b/i.test(fullTxt)) {
             return true;
@@ -364,7 +412,6 @@
     try {
       const candidates = [];
 
-      // 1. Raccogli tutti i possibili candidati con querySelectorAll (così se ce n'è uno nel banner Raid in alto lo scarta e prende quello in basso!)
       const directSelectors = [
         '.claimable-bonus__icon',
         'button[aria-label*="Claim Bonus" i]',
@@ -387,7 +434,6 @@
         }
       }
 
-      // 2. Fallback: secondo bottone dentro .community-points-summary
       const summary = document.querySelector('[data-test-selector="community-points-summary"], .community-points-summary');
       if (summary) {
         const buttons = summary.querySelectorAll('button');
@@ -397,18 +443,13 @@
         }
       }
 
-      // 3. Filtra rigorosamente ogni candidato
       for (const candidate of candidates) {
-        // A. Il bauletto punti non ha MAI parole visibili nel bottone (solo icona SVG o "+50"),
-        // mentre i bottoni del Raid hanno scritto "Annulla", "Avvia ora", "Cancel", "Raid Now", "Abbandona"
         const visibleText = (candidate.textContent || '').trim();
         if (/[a-zA-Z]{3,}/.test(visibleText)) continue;
 
-        // B. Nessun attributo aria-label deve contenere parole di Raid / Annulla / Avvia
         const fullText = (visibleText + ' ' + (candidate.getAttribute('aria-label') || '')).toLowerCase();
         if (isRaidActionButtonText(fullText)) continue;
 
-        // C. Deve trovarsi matematicamente in fondo alla chat, SOTTO la lista dei messaggi!
         if (!isElementBelowChatMessages(candidate)) continue;
 
         return candidate;
@@ -416,6 +457,56 @@
     } catch (e) {}
 
     return null;
+  }
+
+  // Auto-ripristino del player in caso di crash/errore di rete (#1000, #2000, #3000, #4000, #5000)
+  function checkAndRecoverPlayerError() {
+    try {
+      if (isRaidActive()) {
+        errorFirstSeenAt = 0;
+        return;
+      }
+
+      const player = document.querySelector('.video-player, [data-a-target="video-player"], .persistent-player');
+      if (!player) {
+        errorFirstSeenAt = 0;
+        return;
+      }
+
+      const gate = player.querySelector('[data-a-target="player-overlay-content-gate"], .content-overlay-gate');
+      if (!gate) {
+        errorFirstSeenAt = 0;
+        return;
+      }
+
+      const gateText = (gate.textContent || '').trim();
+      const hasPlayerCrashError = /#[12345]000\b|errore di rete|network error|errore del browser|decoding error/i.test(gateText);
+      if (!hasPlayerCrashError) {
+        errorFirstSeenAt = 0;
+        return;
+      }
+
+      const now = Date.now();
+      if (errorFirstSeenAt === 0) {
+        errorFirstSeenAt = now;
+        console.warn(`[Twitch Lurker Pro] ⚠️ Rilevato crash player Twitch (${gateText.slice(0, 60)})! Tentativo di ripristino...`);
+
+        const retryBtn = gate.querySelector('button');
+        if (retryBtn && isPlayerErrorRetryButton(retryBtn)) {
+          retryBtn.click();
+          return;
+        }
+      }
+
+      if (now - errorFirstSeenAt > 7000) {
+        const lastReload = parseInt(sessionStorage.getItem('tlp_last_player_reload') || '0', 10);
+        if (now - lastReload > PLAYER_RELOAD_COOLDOWN_MS) {
+          sessionStorage.setItem('tlp_last_player_reload', now.toString());
+          console.warn('[Twitch Lurker Pro] 🔄 Errore player persistente (#2000/#3000/#4000): ricarico lo stream!');
+          window.location.reload();
+        }
+      }
+    } catch (e) {}
   }
 
   // Clic naturale sul pulsante
@@ -475,19 +566,12 @@
     }
   }
 
-  // Keep-Alive leggero ogni 2.5 minuti
-  setInterval(() => {
-    try {
-      if (isRaidActive()) return;
-      document.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 200, clientY: 200 }));
-    } catch (e) {}
-  }, 150000);
-
-  // Avvia subito il badge, controllo versione e i controlli periodici
+  // Avvia subito il badge, controllo versione, auto-claim e auto-ripristino crash player (#2000/#3000/#4000) (zero mousemove finto!)
   injectBadge();
   setTimeout(injectBadge, 1500);
   setTimeout(checkRemoteVersion, 4000);
   setInterval(checkRemoteVersion, 4 * 60 * 60 * 1000);
   setInterval(injectBadge, 5000);
   setInterval(checkAndClaim, 2500);
+  setInterval(checkAndRecoverPlayerError, 5000);
 })();

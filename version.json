@@ -1,6 +1,6 @@
 {
-  "version": "1.0.20",
-  "changelog": "Protezione Anti-Raid Blindata v1.0.20: il bauletto punti viene cliccato solo se privo di parole visibili e posizionato sotto la lista messaggi della chat.",
+  "version": "1.1.0",
+  "changelog": "Suite Lurker Pro v1.1.0: Anti-Freeze nativo (autoDiscardable: false), Modalità Lurk 1-Click (Mute scheda + 160p), Auto-ripristino crash player (#2000/#3000/#4000), Contatore live aperte e rimozione mousemove finto.",
   "downloadUrl": "https://github.com/norisawa80/lurker-twitch/archive/refs/heads/main.zip",
   "userscriptUrl": "https://raw.githubusercontent.com/norisawa80/lurker-twitch/main/twitch-lurker-points.user.js"
 }

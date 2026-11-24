@@ -15,6 +15,53 @@ function isNewerVersion(remote, local) {
   return false;
 }
 
+// Verifica se un URL di Twitch corrisponde a un canale live (escludendo directory, impostazioni, ecc.)
+function isTwitchChannelTab(url) {
+  if (!url) return false;
+  try {
+    const u = new URL(url);
+    if (!u.hostname.endsWith('twitch.tv')) return false;
+    const parts = u.pathname.split('/').filter(Boolean);
+    if (parts.length === 0) return false;
+    const nonChannels = ['directory', 'settings', 'videos', 'downloads', 'wallet', 'subscriptions', 'inventory', 'drops', 'search', 'friends', 'messages'];
+    return !nonChannels.includes(parts[0].toLowerCase());
+  } catch (e) {
+    return false;
+  }
+}
+
+// Imposta autoDiscardable: false su tutte le schede Twitch aperte per impedire al Memory Saver di congelarle
+// e aggiorna il contatore delle schede Twitch aperte
+async function syncTwitchTabsProtection() {
+  try {
+    const stored = await chrome.storage.local.get(['enabled', 'keepAlive']);
+    const shouldProtect = (stored.enabled !== false) && (stored.keepAlive !== false);
+
+    chrome.tabs.query({ url: '*://*.twitch.tv/*' }, (tabs) => {
+      if (!tabs) return;
+      let liveChannelsCount = 0;
+
+      for (const tab of tabs) {
+        if (isTwitchChannelTab(tab.url)) {
+          liveChannelsCount++;
+        }
+        if (tab.id !== undefined) {
+          try {
+            chrome.tabs.update(tab.id, { autoDiscardable: !shouldProtect }, () => {
+              // Ignora eventuali errori su schede chiuse
+              void chrome.runtime.lastError;
+            });
+          } catch (e) {}
+        }
+      }
+
+      chrome.storage.local.set({
+        openTwitchTabsCount: liveChannelsCount
+      });
+    });
+  } catch (e) {}
+}
+
 // Legge la versione reale del file manifest.json presente su disco nella cartella dell'estensione
 async function getDiskVersion() {
   try {
@@ -48,9 +95,7 @@ function reloadExtensionAndTwitchTabs() {
 
 async function checkForUpdates(triggerReloadIfReady = false) {
   try {
-    // Versione attualmente caricata nella RAM del browser
     const memoryVersion = chrome.runtime.getManifest().version;
-    // Versione presente nei file su disco nella cartella dell'estensione
     const diskVersion = await getDiskVersion();
 
     // 1. Se i file su disco sono già stati aggiornati rispetto alla memoria del browser
@@ -134,7 +179,7 @@ chrome.runtime.onInstalled.addListener((details) => {
   }
 
   chrome.storage.local.get(
-    ['enabled', 'humanDelay', 'keepAlive', 'showBadge', 'soundNotification', 'totalClaims', 'totalPoints', 'history'],
+    ['enabled', 'humanDelay', 'keepAlive', 'autoRecover', 'showBadge', 'soundNotification', 'totalClaims', 'totalPoints', 'history'],
     (data) => {
       const defaults = {
         appliedVersion: currentVer,
@@ -143,13 +188,16 @@ chrome.runtime.onInstalled.addListener((details) => {
       if (data.enabled === undefined) defaults.enabled = true;
       if (data.humanDelay === undefined) defaults.humanDelay = true;
       if (data.keepAlive === undefined) defaults.keepAlive = true;
+      if (data.autoRecover === undefined) defaults.autoRecover = true;
       if (data.showBadge === undefined) defaults.showBadge = true;
       if (data.soundNotification === undefined) defaults.soundNotification = false;
       if (data.totalClaims === undefined) defaults.totalClaims = 0;
       if (data.totalPoints === undefined) defaults.totalPoints = 0;
       if (!Array.isArray(data.history)) defaults.history = [];
 
-      chrome.storage.local.set(defaults);
+      chrome.storage.local.set(defaults, () => {
+        syncTwitchTabsProtection();
+      });
     }
   );
 
@@ -159,12 +207,27 @@ chrome.runtime.onInstalled.addListener((details) => {
 });
 
 chrome.runtime.onStartup.addListener(() => {
+  syncTwitchTabsProtection();
   checkForUpdates(true);
+});
+
+// Aggiorna autoDiscardable e contatore schede quando le schede Twitch vengono aperte, chiuse o cambiano URL
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (tab && tab.url && tab.url.includes('twitch.tv')) {
+    syncTwitchTabsProtection();
+  }
+});
+
+chrome.tabs.onCreated.addListener(() => {
+  syncTwitchTabsProtection();
+});
+
+chrome.tabs.onRemoved.addListener(() => {
+  syncTwitchTabsProtection();
 });
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg && msg.type === 'CHECK_UPDATES') {
-    // Se i file su disco sono già aggiornati quando l'utente clicca "Controlla aggiornamenti", ricarica subito l'estensione!
     checkForUpdates(true).then((info) => sendResponse(info));
     return true;
   }
@@ -172,11 +235,42 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     checkForUpdates(true).then((info) => sendResponse(info));
     return true;
   }
+  if (msg && msg.type === 'SYNC_TABS') {
+    syncTwitchTabsProtection();
+    sendResponse({ ok: true });
+    return true;
+  }
+  if (msg && msg.type === 'TOGGLE_TAB_LURK_MODE') {
+    const targetTabId = msg.tabId || (sender && sender.tab && sender.tab.id);
+    if (!targetTabId) {
+      sendResponse({ ok: false });
+      return true;
+    }
+    const enableLurk = Boolean(msg.enable);
+    chrome.tabs.update(targetTabId, {
+      muted: enableLurk,
+      autoDiscardable: false
+    }, (updatedTab) => {
+      void chrome.runtime.lastError;
+      chrome.tabs.sendMessage(targetTabId, {
+        type: 'SET_LURK_QUALITY',
+        enable: enableLurk
+      }, () => {
+        void chrome.runtime.lastError;
+        syncTwitchTabsProtection();
+        sendResponse({
+          ok: true,
+          muted: updatedTab && updatedTab.mutedInfo ? updatedTab.mutedInfo.muted : enableLurk
+        });
+      });
+    });
+    return true;
+  }
 });
 
-// Controlla ogni 25 secondi se i file nella cartella locale sono stati aggiornati:
-// se sì, ricarica automaticamente l'estensione senza dover riavviare il browser!
+// Controlla ogni 25 secondi se i file nella cartella locale sono stati aggiornati e sincronizza autoDiscardable
 setInterval(async () => {
+  syncTwitchTabsProtection();
   const memoryVersion = chrome.runtime.getManifest().version;
   const diskVersion = await getDiskVersion();
   if (diskVersion && isNewerVersion(diskVersion, memoryVersion)) {
@@ -188,23 +282,28 @@ setInterval(async () => {
 // Controllo periodico su GitHub ogni 4 ore
 setInterval(() => checkForUpdates(false), 4 * 60 * 60 * 1000);
 
-// Ascolta gli aggiornamenti di storage per aggiornare il badge dell'icona
+// Ascolta gli aggiornamenti di storage per aggiornare il badge dell'icona e la protezione schede
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (area === 'local' && changes.totalClaims) {
-    chrome.storage.local.get(['updateAvailable'], (res) => {
-      if (res && res.updateAvailable) return;
+  if (area === 'local') {
+    if (changes.keepAlive || changes.enabled) {
+      syncTwitchTabsProtection();
+    }
+    if (changes.totalClaims) {
+      chrome.storage.local.get(['updateAvailable'], (res) => {
+        if (res && res.updateAvailable) return;
 
-      const claims = changes.totalClaims.newValue;
-      if (claims > 0) {
-        chrome.action.setBadgeText({ text: claims > 999 ? '999+' : claims.toString() });
-        chrome.action.setBadgeBackgroundColor({ color: '#10B981' });
+        const claims = changes.totalClaims.newValue;
+        if (claims > 0) {
+          chrome.action.setBadgeText({ text: claims > 999 ? '999+' : claims.toString() });
+          chrome.action.setBadgeBackgroundColor({ color: '#10B981' });
 
-        setTimeout(() => {
-          chrome.action.setBadgeBackgroundColor({ color: '#9146FF' });
-        }, 3000);
-      } else {
-        chrome.action.setBadgeText({ text: '' });
-      }
-    });
+          setTimeout(() => {
+            chrome.action.setBadgeBackgroundColor({ color: '#9146FF' });
+          }, 3000);
+        } else {
+          chrome.action.setBadgeText({ text: '' });
+        }
+      });
+    }
   }
 });
